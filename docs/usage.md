@@ -2,6 +2,8 @@
 
 在仓库根目录运行 `python -m offline_devkit --help`。安装到虚拟环境后，可以将前缀换成 `offline-devkit`。所有命令都只读取输入，结果写到标准输出，错误写到标准错误。
 
+命令输出统一为 UTF-8、LF 换行，Windows 重定向时也保持相同字节格式。格式化后的 JSON 以一个 LF 结尾。
+
 ## JSON
 
 ```bash
@@ -20,7 +22,7 @@ python -m offline_devkit json [FILE] [--check] [--sort-keys] [--compact] [--inde
 
 数字在解析时存储为私有的字符串子类，序列化时写回原始字符序列。它不适合直接做算术。字符串会经过解码和重新编码，所以转义的写法可能改变；对象键顺序默认保留。
 
-输入最大 16 MiB。太深的嵌套会报告受控错误，具体深度由 Python 运行时决定。程序没有大型流式 JSON 或 JSON Lines 支持。
+输入最大 16 MiB。嵌套深度由 Python 解码器和递归限制决定，因此 `--check` 可能接受格式化无法处理的深度；解码或渲染触及限制时会报告受控错误。程序没有大型流式 JSON 或 JSON Lines 支持。
 
 不指定文件时，可以直接管道传入：
 

@@ -73,7 +73,9 @@ def scan_directory(
             path = directory / entry.name
             relative = path.relative_to(root).as_posix()
             try:
-                info = entry.stat(follow_symlinks=False)
+                # DirEntry.stat() can omit device/inode on Windows. lstat()
+                # supplies the same file identity checked by fstat() below.
+                info = path.lstat()
                 if _linked(info):
                     scan.symlinks_skipped += 1
                     continue

@@ -35,6 +35,8 @@
 
 扫描需要保存 O(n) 条文件元数据，哈希读取的时间与候选文件的总字节数相关。只有长度重复的文件参与哈希，所以 `files_hashed` 往往小于 `files_scanned`。整理与排序也有相应时间成本。
 
+元数据通过 `Path.lstat()` 获取，避免 Windows 的 `DirEntry.stat()` 把设备与 inode 返回为零，导致正常文件被误判为发生变化、硬链接无法去重。这里多取一次完整元数据，是为了与后续 `fstat()` 使用同一套文件身份信息。详见 [Python 官方说明](https://docs.python.org/3.12/library/os.html#os.DirEntry.stat)。
+
 ## CLI：结果与退出码都属于接口
 
 入口：[cli.py](../offline_devkit/cli.py)。
@@ -42,6 +44,8 @@
 `argparse` 验证参数。核心模块产生数据，CLI 决定展示为人类可读文本还是 JSON。错误数组非空时返回 2；`dupes --fail-if-found` 才把“发现重复”映射为 1。这样调用方能区分结果与故障。
 
 测试同时覆盖底层函数和实际的 `python -m offline_devkit` 子进程调用。权限错误采用模拟方式，因为 CI 或 root 用户可能绕过普通文件权限。
+
+真实子进程测试还会检查 UTF-8 与 LF 输出，防止 Windows 自动把换行转换为 CRLF。深层 JSON 测试检查格式化的受控错误；不假定所有 Python 版本的解码器具有相同深度限制。
 
 ## 下一步怎样改
 

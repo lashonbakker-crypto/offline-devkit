@@ -1,5 +1,7 @@
 # Offline DevKit
 
+[![Tests](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml)
+
 **Small local tools. Readable code. Useful ideas to share.**
 
 [中文](README.md) · [Command reference](docs/usage.md) · [Contributing](CONTRIBUTING.md)
@@ -47,6 +49,8 @@ python -m offline_devkit sizes . --top 10 --json
 ```
 
 JSON input is limited to 16 MiB, accepts a UTF-8 BOM, and retains exact number spellings including exponents and negative zero. Formatting may change whitespace and string escapes. Duplicate keys are checked after escape decoding.
+
+Command output uses UTF-8 and LF newlines, including redirected output on Windows. Validation and formatting may support different nesting depths because Python decoder and recursion limits vary; exceeding those limits produces a controlled error.
 
 File operations are read-only. Symlinks and Windows reparse points are skipped. Dependency/cache directories are excluded by default; use `--include-ignored` to include them. `--exclude` is a repeatable, case-sensitive glob matched against a basename or root-relative path.
 

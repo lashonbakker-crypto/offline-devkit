@@ -118,10 +118,10 @@ def _print_report(command: str, report: dict[str, Any], as_json: bool) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    # UTF-8 output on legacy Windows consoles as well as redirected streams.
+    # UTF-8 and LF output on Windows consoles as well as redirected streams.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace", newline="\n")
     try:
         if args.command == "json":
             text = _read_json(args.file)
