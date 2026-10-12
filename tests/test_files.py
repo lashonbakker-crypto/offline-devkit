@@ -2,6 +2,7 @@ import hashlib
 import os
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -162,6 +163,83 @@ class FileTests(unittest.TestCase):
         self.assertEqual(scan.files, [])
         self.assertEqual(len(scan.errors), 1)
         self.assertIn("Permission denied", scan.errors[0])
+
+    @contextmanager
+    def replace_after_marker(self, marker, replace):
+        """Change a queued directory after its parent has recorded it."""
+        original_lstat = Path.lstat
+        changed = False
+
+        def lstat(path, *args, **kwargs):
+            nonlocal changed
+            info = original_lstat(path, *args, **kwargs)
+            if path == marker and not changed:
+                changed = True
+                replace()
+            return info
+
+        with patch.object(Path, "lstat", lstat):
+            yield
+
+    def test_queued_directory_replacement_is_reported(self):
+        self.write("a-pending/original.txt")
+        marker = self.write("z-marker.txt")
+        directory = self.root / "a-pending"
+
+        def replace():
+            directory.rename(self.root / "saved")
+            directory.mkdir()
+            (directory / "replacement.txt").write_bytes(b"replacement")
+
+        with self.replace_after_marker(marker, replace):
+            scan = scan_directory(self.root)
+        self.assertEqual([file.relative_path for file in scan.files], ["z-marker.txt"])
+        self.assertEqual(len(scan.errors), 1)
+        self.assertIn("directory changed", scan.errors[0])
+
+    def test_queued_directory_replaced_by_symlink_is_not_traversed(self):
+        self.write("a-pending/original.txt")
+        marker = self.write("z-marker.txt")
+        directory = self.root / "a-pending"
+        with tempfile.TemporaryDirectory() as temporary:
+            outside = Path(temporary)
+            (outside / "outside.txt").write_bytes(b"outside scan root")
+            # Probe support before injecting the concurrent replacement.
+            probe = self.root / "probe-link"
+            self.symlink(outside, probe, directory=True)
+            probe.unlink()
+
+            def replace():
+                directory.rename(self.root / "saved")
+                directory.symlink_to(outside, target_is_directory=True)
+
+            with self.replace_after_marker(marker, replace):
+                with patch("offline_devkit.files.os.scandir", wraps=os.scandir) as scandir:
+                    scan = scan_directory(self.root)
+            self.assertEqual(scandir.call_count, 1)
+        self.assertEqual([file.relative_path for file in scan.files], ["z-marker.txt"])
+        self.assertEqual(len(scan.errors), 1)
+        self.assertIn("directory changed", scan.errors[0])
+
+    def test_directory_replaced_after_listing_is_reported(self):
+        self.write("a-pending/original.txt")
+        directory = self.root / "a-pending"
+        original_scandir = os.scandir
+
+        @contextmanager
+        def scandir(path):
+            with original_scandir(path) as iterator:
+                yield iterator
+            if path == directory:
+                directory.rename(self.root / "saved")
+                directory.mkdir()
+                (directory / "original.txt").write_bytes(b"replacement")
+
+        with patch("offline_devkit.files.os.scandir", scandir):
+            scan = scan_directory(self.root)
+        self.assertEqual(scan.files, [])
+        self.assertEqual(len(scan.errors), 1)
+        self.assertIn("directory changed", scan.errors[0])
 
     def test_special_files_are_skipped(self):
         if not hasattr(os, "mkfifo"):

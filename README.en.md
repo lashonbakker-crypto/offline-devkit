@@ -65,13 +65,15 @@ Reports measure logical file sizes, not allocated or reclaimable disk space. Inv
 
 Scan stable, trusted directories. This is not a filesystem snapshot or an isolation boundary against concurrent hostile changes. Reported paths can be sensitive. Do not redirect JSON output to its input file or place scan output inside the scanned directory.
 
+Queued directories are checked before entry and after listing. An observed replacement by a link or another directory is skipped, recorded in `errors`, and returns exit code 2. These path-based checks still have gaps between checking and use, do not fully guard ancestor replacements, and cannot reliably identify ordinary directory replacements without usable device/inode metadata.
+
 ## Development
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Local validation: 40 tests passed on Python 3.12 / Linux. The [pre-release CI run](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834) passed behavior tests, installation, and command smoke checks on Linux / Python 3.10, 3.12, 3.14 and Windows, macOS / Python 3.12. The badge and Actions page show the status of subsequent commits.
+Initial-release validation: 40 tests passed on Python 3.12 / Linux. The [pre-release CI run](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834) passed behavior tests, installation, and command smoke checks on Linux / Python 3.10, 3.12, 3.14 and Windows, macOS / Python 3.12. The badge and Actions page show the status of subsequent commits.
 
 The Chinese technical notes explain [lossless JSON numbers](docs/01-json-numbers.md) and [duplicate discovery](docs/02-duplicates.md). See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), and [official references](docs/references.md).
 

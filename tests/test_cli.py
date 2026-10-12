@@ -95,6 +95,40 @@ class CliTests(unittest.TestCase):
         self.assertEqual(status, 2)
         self.assertEqual(json.loads(output)["errors"], ["permission denied"])
 
+    def test_directory_replacement_returns_two_for_both_reports(self):
+        for command in ("sizes", "dupes"):
+            with self.subTest(command=command):
+                root = self.root / command
+                directory = root / "a-pending"
+                directory.mkdir(parents=True)
+                (directory / "original.txt").write_bytes(b"same")
+                marker = root / "z-marker.txt"
+                marker.write_bytes(b"same")
+                original_lstat = Path.lstat
+                changed = False
+
+                def lstat(path, *args, **kwargs):
+                    nonlocal changed
+                    info = original_lstat(path, *args, **kwargs)
+                    if path == marker and not changed:
+                        changed = True
+                        directory.rename(root / "saved")
+                        directory.mkdir()
+                        (directory / "original.txt").write_bytes(b"same")
+                    return info
+
+                with patch.object(Path, "lstat", lstat):
+                    args = [command, str(root), "--json"]
+                    if command == "dupes":
+                        args.append("--fail-if-found")
+                    status, output, errors = self.invoke(*args)
+                self.assertEqual(status, 2)
+                self.assertEqual(errors, "")
+                report = json.loads(output)
+                self.assertEqual(report["files_scanned"], 1)
+                self.assertEqual(len(report["errors"]), 1)
+                self.assertIn("directory changed", report["errors"][0])
+
     def test_sizes_json_and_top(self):
         (self.root / "a").write_bytes(b"abc")
         (self.root / "b").write_bytes(b"12345")

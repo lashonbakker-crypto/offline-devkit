@@ -47,6 +47,17 @@ def _excluded(relative: str, name: str, patterns: tuple[str, ...]) -> bool:
     )
 
 
+def _check_directory(path: Path, identity: tuple[int, int]) -> None:
+    """Reject an observable replacement of a directory queued for scanning."""
+    current = path.lstat()
+    if (
+        _linked(current)
+        or not stat.S_ISDIR(current.st_mode)
+        or (current.st_dev, current.st_ino) != identity
+    ):
+        raise OSError("directory changed during scan; rerun when directories are stable")
+
+
 def scan_directory(
     root: Path | str,
     *,
@@ -59,12 +70,16 @@ def scan_directory(
     if _linked(info) or not stat.S_ISDIR(info.st_mode):
         raise ValueError("root must be a real directory, not a symlink or file")
     scan = Scan(root=root)
-    pending = [root]
+    pending = [(root, (info.st_dev, info.st_ino))]
     while pending:
-        directory = pending.pop()
+        directory, identity = pending.pop()
         try:
+            _check_directory(directory, identity)
             with os.scandir(directory) as iterator:
                 entries = sorted(iterator, key=lambda entry: entry.name)
+            # DirEntry names alone do not identify the directory now at this
+            # path. Recheck before looking up those names in the filesystem.
+            _check_directory(directory, identity)
         except OSError as error:
             relative = directory.relative_to(root).as_posix()
             scan.errors.append(f"{relative!r}: {error.strerror or str(error)}")
@@ -88,7 +103,7 @@ def scan_directory(
                     scan.excluded_entries += 1
                     continue
                 if is_directory:
-                    pending.append(path)
+                    pending.append((path, (info.st_dev, info.st_ino)))
                 elif stat.S_ISREG(info.st_mode):
                     scan.files.append(
                         FileRecord(

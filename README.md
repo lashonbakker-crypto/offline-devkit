@@ -107,11 +107,12 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 python -m unittest discover -s tests -v
 ```
 
-本地验证环境为 Python 3.12 / Linux，40 项测试通过。发布前的[跨平台 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834)已通过 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12 的行为测试、安装和命令检查。后续提交的状态以顶部徽章与 Actions 页面为准。
+首版发布时，本地 Python 3.12 / Linux 的 40 项测试通过。发布前的[跨平台 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834)已通过 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12 的行为测试、安装和命令检查。后续提交的状态以顶部徽章与 Actions 页面为准。
 
 ## 使用边界
 
 - 在稳定、可信的本地目录运行。扫描不是文件系统快照，也不是对恶意并发修改的隔离边界；检测到文件变化会报告错误，但无法检测所有竞态。
+- 等待扫描的目录会在进入前、列出条目后重新核对。发现目录被替换为链接或其他目录时，跳过该目录、记录 `errors`，并返回退出码 2；这仍不能排除检查与使用之间的替换，或完全防护祖先目录的变化。详见[扫描边界](docs/usage.md#目录命令共同参数)。
 - `sizes` 统计文件长度（逻辑大小），硬链接的每个路径都会计数；压缩、稀疏文件、写时复制、磁盘块占用不在本项目统计范围。
 - SHA-256 相同是重复内容的实用判断依据；本工具没有逐字节复核，也不提供数学上零碰撞的证明。
 - 输出报告包含文件路径，分享报告前请检查内容。程序不发起网络请求；保存标准输出由你的 shell 负责。
