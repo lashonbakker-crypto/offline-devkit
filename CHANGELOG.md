@@ -14,4 +14,4 @@
 - Windows 命令输出统一为 UTF-8 与 LF，便于管道及跨平台比较。
 - 深层 JSON 测试覆盖格式化的真实递归边界，兼容 Python 3.14 解码器行为。
 
-本地验证：Python 3.12 / Linux，40 项测试通过。GitHub Actions 配置不等同于远程已经通过；请查看实际运行结果。
+本地验证：Python 3.12 / Linux，40 项测试通过。发布前[实际 CI 运行](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834)已通过全部五组环境的行为测试、安装和命令检查：Linux / Python 3.10、3.12、3.14，Windows 与 macOS / Python 3.12。Windows 没有 `os.mkfifo`，对应 FIFO 测试按能力跳过。

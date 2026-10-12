@@ -107,7 +107,7 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 python -m unittest discover -s tests -v
 ```
 
-仓库包含跨平台 GitHub Actions 测试配置；本次本地验证环境为 Python 3.12 / Linux，40 项测试通过。远程 CI 的实际结果以仓库 Actions 页面为准。
+本地验证环境为 Python 3.12 / Linux，40 项测试通过。发布前的[跨平台 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834)已通过 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12 的行为测试、安装和命令检查。后续提交的状态以顶部徽章与 Actions 页面为准。
 
 ## 使用边界
 

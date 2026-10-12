@@ -71,7 +71,7 @@ Scan stable, trusted directories. This is not a filesystem snapshot or an isolat
 python -m unittest discover -s tests -v
 ```
 
-Local validation: 40 tests passed on Python 3.12 / Linux. A GitHub Actions matrix is included for Windows, macOS, and Linux; inspect Actions for actual remote results.
+Local validation: 40 tests passed on Python 3.12 / Linux. The [pre-release CI run](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834) passed behavior tests, installation, and command smoke checks on Linux / Python 3.10, 3.12, 3.14 and Windows, macOS / Python 3.12. The badge and Actions page show the status of subsequent commits.
 
 The Chinese technical notes explain [lossless JSON numbers](docs/01-json-numbers.md) and [duplicate discovery](docs/02-duplicates.md). See the [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), and [official references](docs/references.md).
 
