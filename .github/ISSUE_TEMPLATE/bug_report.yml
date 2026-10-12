@@ -1,0 +1,37 @@
+name: Bug report / 问题反馈
+description: 提供最小复现，帮助定位真实行为问题。
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: 分享前请删除个人路径、密钥与敏感输入。安全问题请先阅读 SECURITY.md。
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      description: 操作系统、Python 版本、工具版本或提交号
+      placeholder: Linux / Python 3.12 / 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 最小复现
+      description: 完整命令，以及可以公开的小样例或创建样例的方法
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 输出、退出码与 errors 数组（如有）
+      render: text
+    validations:
+      required: true

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offline-devkit"
+version = "0.1.0"
+description = "Dependency-free local tools for lossless JSON formatting, duplicate files, and directory sizes."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "lashonbakker-crypto"}]
+keywords = ["cli", "json", "duplicates", "offline", "developer-tools"]
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Utilities",
+]
+
+[project.scripts]
+offline-devkit = "offline_devkit.cli:main"
+
+[project.urls]
+Repository = "https://github.com/lashonbakker-crypto/offline-devkit"
+Issues = "https://github.com/lashonbakker-crypto/offline-devkit/issues"
+
+[tool.setuptools.packages.find]
+include = ["offline_devkit*"]
