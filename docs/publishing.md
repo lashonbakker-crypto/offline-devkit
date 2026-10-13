@@ -93,9 +93,11 @@ Maintainers can manually run **Verify published download** for a published tag. 
 - 首次[下载验证](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38468084030)的 Linux 三组和 Intel macOS 成功；Windows 的下载校验值正确，但许可证的 Git 检出换行导致源码比较失败。修正后使用标签原始字节复验，保留首次失败记录。
 - 第二次[复验](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38468778163)仍发现 Windows 的 `git archive` 继承了换行转换。新增模拟 `core.autocrlf=true` 的回归测试，确认普通归档确实转换为 CRLF，而共享导出函数保留原始 LF，且不改写用户配置。
 
-该发布提交的[实际五组 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38423538515)均成功，包括 Intel macOS；[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38467046597)重新运行 69 项测试后成功。此处的本地实际附件复验只覆盖 Linux；Windows / macOS 的下载验证以 **Verify published download** 的实际运行结果为准。
+该发布提交的[实际五组 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38423538515)均成功，包括 Intel macOS；[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38467046597)重新运行 69 项测试后成功。
 
-The downloaded v0.3.0 assets passed local verification on Linux / Python 3.12.14. The checksum matched GitHub's asset digest, archive bytes matched the release commit, and isolated CLI probes passed. Negative checks rejected a wrong checksum and changed module bytes before execution. The linked source CI and release workflow succeeded; consult the actual download-verification run for Windows/macOS asset results.
+2026-10-14，修正后的[五组实际下载复验](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38469927622)全部成功：Linux / Python 3.10、3.12、3.14，Windows 与 macOS 15（Intel）/ Python 3.12。各平台下载的是同一个 10514 字节附件，SHA-256 与上面的记录一致；六个模块、入口、许可证，以及全部独立命令检查均通过。对应[验证实现提交的源码 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38469858706)也通过五组环境的 70 项测试；Windows 按能力跳过不支持的 FIFO 测试。此结果不包含 Apple Silicon。
+
+The downloaded v0.3.0 assets passed local verification on Linux / Python 3.12.14. Negative checks rejected a wrong checksum and changed module bytes before execution. The final linked **five-environment download run** also succeeded on Linux / Python 3.10, 3.12, 3.14 and Windows / Intel macOS / Python 3.12: the same 10514-byte asset and checksum, tagged module/entry-point/license bytes, and isolated CLI probes all passed. The verifier implementation's five-environment source CI passed its 70 tests, with Windows skipping unsupported FIFO creation. Apple Silicon was not tested.
 
 ## v0.2.1 下载附件复验记录 — 2026-10-13
 
