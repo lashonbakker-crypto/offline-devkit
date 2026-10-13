@@ -65,6 +65,8 @@ python -m offline_devkit jsonl examples/invalid-records.jsonl --json
 
 `--json` 时错误保存在报告中；普通文本模式把行错误写入标准错误。报告请保存到新的文件。
 
+标准输入的完整例子见 [Bash / PowerShell 管道教程](04-jsonl-pipelines.md)（[English](04-jsonl-pipelines.en.md)）。管道需要同时保存生成器和校验器的退出码；`complete=true` 只表示读到当前输入末尾，不能证明生成器输出了全部预期记录。
+
 ## 目录命令共同参数
 
 | 参数 | 默认值 | 含义 |

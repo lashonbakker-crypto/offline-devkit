@@ -45,6 +45,12 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run behavior tests
         run: python -m unittest discover -s tests -v
+      - name: Check documented Bash pipelines
+        if: runner.os != 'Windows'
+        run: python scripts/verify_jsonl_pipelines.py --shell bash
+      - name: Check documented PowerShell pipelines
+        if: runner.os == 'Windows'
+        run: python scripts/verify_jsonl_pipelines.py --shell powershell
       - name: Install package
         run: python -m pip install --no-deps .
       - name: Smoke test installed command

@@ -90,6 +90,8 @@ python -m offline_devkit jsonl examples/invalid-records.jsonl --json
 
 第一条命令检查 3 行，全部有效；第二条命令报告第 2 行重复键、第 3 行 `NaN`，并返回退出码 2。可以用在日志、数据集或 CI 的格式检查中。
 
+从其他程序接收数据，见[Bash / PowerShell 管道教程](docs/04-jsonl-pipelines.md)：分别保留生成器和校验器退出码，明确 UTF-8，并演示生成器中途失败的情况。
+
 按行读取，默认每行最多 1 MiB（不含 LF / CRLF），只保留前 20 条错误但继续统计全部行。拒绝空白行、BOM、无效 UTF-8、重复键和非标准数字。允许顶层标量和没有末尾换行的最后一条记录。检查 JSON 语法与本工具的严格规则，不检查业务 schema 或特定平台的数据要求。详见[JSONL 说明](docs/03-jsonl.md)。
 
 ### 找出重复文件，先看清楚再处理
