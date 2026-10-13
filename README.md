@@ -4,21 +4,39 @@
 
 [![Tests](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml)
 
-**把日常开发里的小麻烦，变成可理解、可复用的本地工具。**
+**本地检查 JSON / JSONL，保留数字原文，找出重复文件和大文件。**
 
-[English](README.en.md) · [快速开始](#一分钟上手) · [完整命令](docs/usage.md) · [源码讲解](docs/how-it-works.md) · [贡献指南](CONTRIBUTING.md)
+Local data checks, exact JSON numbers, and read-only file reports. **Python 3.10+ · Zero runtime dependencies · MIT.**
 
-一个用 Python 标准库实现的轻量命令行工具箱：严格检查并格式化 JSON、查找重复文件、统计目录大小。运行时零第三方依赖，文件内容留在本机。适合直接使用，也适合作为学习命令行、文件系统和自动测试的开源例子。
+[English](README.en.md) · [单文件下载](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) · [快速开始](#一分钟上手) · [完整命令](docs/usage.md) · [贡献指南](CONTRIBUTING.md)
+
+一个用 Python 标准库实现的轻量命令行工具箱。适合检查配置文件、日志、JSONL 数据集，以及整理下载目录和备份；处理过程在本机完成。可直接使用，也可阅读源码学习命令行、文件系统和自动测试。
 
 | 工具 | 解决什么问题 | 实现亮点 |
 | --- | --- | --- |
 | `json` | 配置文件难读、重复键、非标准数字 | 保留数字原文，拒绝重复键与 `NaN` / `Infinity` |
+| `jsonl` | 日志或数据集中某一行有问题 | 逐行检查、准确行号、单行大小限制、完整计数与有限错误样本 |
 | `dupes` | 下载目录、资料备份里有重复内容 | 先按大小筛选，再分块计算 SHA-256；硬链接只算一次 |
 | `sizes` | 想知道哪个子目录、哪些文件最大 | 汇总一级目录，输出最大文件与机器可读报告 |
 
-**Python 3.10+ · Windows / macOS / Linux 的 CI 配置 · MIT**
+### 30 秒看懂
+
+![真实命令演示：保留 JSON 数字、定位 JSONL 错误、发现重复文件](assets/demo.gif)
+
+演示来自附带示例的实际命令输出。可复现步骤见[演示说明](docs/demo.md)。觉得有用，可以点 **Star** 收藏，也欢迎用 Issue 分享实际遇到的问题。
 
 ## 一分钟上手
+
+**方式一：下载一个文件。** 在 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 下载 `offline-devkit.pyz`，有 Python 3.10+ 就能运行，适合在多台电脑间携带：
+
+```bash
+python offline-devkit.pyz --help
+python offline-devkit.pyz sizes . --top 5
+```
+
+无需 pip 或构建工具。Windows 可用 `py -3`；macOS / Linux 可用 `python3`。下载需要网络，下载后的运行不需要网络。
+
+**方式二：从源码试用附带示例。**
 
 克隆仓库后进入项目目录。以下方式直接运行源码，无需安装包，也不需要联网：
 
@@ -26,11 +44,12 @@
 git clone https://github.com/lashonbakker-crypto/offline-devkit.git
 cd offline-devkit
 python -m offline_devkit json examples/config.json
+python -m offline_devkit jsonl examples/records.jsonl
 python -m offline_devkit dupes examples/files
 python -m offline_devkit sizes examples/files --top 3
 ```
 
-克隆需要网络，下载源码 ZIP 后解压也可以；进入目录后的三个工具命令不需要网络。
+克隆需要网络，下载源码 ZIP 后解压也可以；进入目录后的工具命令不需要网络。
 
 Windows 如果没有 `python` 命令，请用 `py -3`；macOS / Linux 可以用 `python3`。
 
@@ -49,7 +68,7 @@ offline-devkit --help
 
 安装步骤可能需要下载构建工具 `setuptools`。安装完成后的工具运行，以及上面的源码运行方式，都不需要网络。目前没有承诺在 PyPI 发布，请从本仓库安装。
 
-## 三个日常用法
+## 四个日常用法
 
 ### 检查 JSON，或生成可读的新文件
 
@@ -61,6 +80,17 @@ python -m offline_devkit json examples/config.json --sort-keys > formatted.json
 `--check` 成功时没有输出，适合脚本检查。输入必须是 UTF-8，允许 BOM，大小上限为 16 MiB。格式化保留数字字符序列，包括指数、大整数、长小数与 `-0`；字符串的转义方式和空白可能变化。
 
 命令输出统一使用 UTF-8 和 LF 换行，包括 Windows 上的重定向输出。`--check` 与格式化的可处理嵌套深度可能不同，取决于 Python 的解码器和递归限制；超出能力时会报告错误。
+
+### 定位 JSONL / NDJSON 的坏行
+
+```bash
+python -m offline_devkit jsonl examples/records.jsonl
+python -m offline_devkit jsonl examples/invalid-records.jsonl --json
+```
+
+第一条命令检查 3 行，全部有效；第二条命令报告第 2 行重复键、第 3 行 `NaN`，并返回退出码 2。可以用在日志、数据集或 CI 的格式检查中。
+
+按行读取，默认每行最多 1 MiB（不含 LF / CRLF），只保留前 20 条错误但继续统计全部行。拒绝空白行、BOM、无效 UTF-8、重复键和非标准数字。允许顶层标量和没有末尾换行的最后一条记录。检查 JSON 语法与本工具的严格规则，不检查业务 schema 或特定平台的数据要求。详见[JSONL 说明](docs/03-jsonl.md)。
 
 ### 找出重复文件，先看清楚再处理
 
@@ -97,6 +127,8 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 | [实现原理](docs/how-it-works.md) | 为什么不能直接用浮点数格式化 JSON；如何避免误判重复文件 |
 | [技术笔记 01](docs/01-json-numbers.md) | 用一个可以复现的例子理解 JSON 精度问题 |
 | [技术笔记 02](docs/02-duplicates.md) | 文件大小、哈希、硬链接与目录扫描的区别 |
+| [技术笔记 03](docs/03-jsonl.md) | 按行检查数据集、错误样本和读取边界 |
+| [可复现演示](docs/demo.md) | README 动图对应的实际命令与输出 |
 | [贡献指南](CONTRIBUTING.md) | 怎样报告问题、修改代码、运行测试 |
 | [发布记录](CHANGELOG.md) | 当前版本及行为变动 |
 | [路线图](ROADMAP.md) | 后续可以贡献的具体方向 |
@@ -107,7 +139,7 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 python -m unittest discover -s tests -v
 ```
 
-首版发布时，本地 Python 3.12 / Linux 的 40 项测试通过。发布前的[跨平台 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38272248834)已通过 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12 的行为测试、安装和命令检查。后续提交的状态以顶部徽章与 Actions 页面为准。
+CI 覆盖 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12，运行行为测试、安装检查和单文件包检查。**当前提交是否通过，请查看顶部徽章与 [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions)。**
 
 ## 使用边界
 

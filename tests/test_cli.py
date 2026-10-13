@@ -37,6 +37,42 @@ class CliTests(unittest.TestCase):
         status, output, errors = self.invoke("json", "--check", input_text="[1,2]")
         self.assertEqual((status, output, errors), (0, "", ""))
 
+    def test_jsonl_stdin_reports_line_number_and_exit_two(self):
+        status, output, errors = self.invoke("jsonl", "--json", input_text='{}\n{"x":1,"x":2}\nnull\n')
+        self.assertEqual((status, errors), (2, ""))
+        report = json.loads(output)
+        self.assertEqual(report["valid_lines"], 2)
+        self.assertEqual(report["errors"][0]["line"], 2)
+
+    def test_jsonl_file_success_and_bounded_error_sample(self):
+        path = self.root / "records.jsonl"
+        path.write_bytes(b"{}\r\nnull")
+        status, output, errors = self.invoke("jsonl", str(path))
+        self.assertEqual((status, errors), (0, ""))
+        self.assertIn("valid: 2; invalid: 0", output)
+        path.write_bytes(b"NaN\nNaN\n{}\n")
+        status, output, errors = self.invoke("jsonl", str(path), "--max-errors", "0", "--json")
+        self.assertEqual((status, errors), (2, ""))
+        self.assertEqual(json.loads(output)["errors_omitted"], 2)
+
+    def test_jsonl_read_failure_is_not_success(self):
+        report = {"lines_checked": 1, "valid_lines": 1, "invalid_lines": 0, "errors": [], "errors_omitted": 0, "complete": False, "read_error": "disk read failure"}
+        with patch("offline_devkit.cli.validate_jsonl", return_value=report):
+            status, output, errors = self.invoke("jsonl", "--json")
+        self.assertEqual((status, errors), (2, ""))
+        self.assertFalse(json.loads(output)["complete"])
+
+    def test_jsonl_binary_pipe_in_a_real_process(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "offline_devkit", "jsonl", "--json"],
+            input='{"猫":1E-400}\nNaN\n'.encode("utf-8"),
+            capture_output=True, cwd=REPO_ROOT, check=False,
+        )
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stderr, b"")
+        self.assertNotIn(b"\r\n", result.stdout)
+        self.assertEqual(json.loads(result.stdout)["valid_lines"], 1)
+
     def test_invalid_json_has_exit_two_and_no_stdout(self):
         status, output, errors = self.invoke("json", input_text='{"x":NaN}')
         self.assertEqual(status, 2)

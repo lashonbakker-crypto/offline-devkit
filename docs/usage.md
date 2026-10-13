@@ -22,7 +22,7 @@ python -m offline_devkit json [FILE] [--check] [--sort-keys] [--compact] [--inde
 
 数字在解析时存储为私有的字符串子类，序列化时写回原始字符序列。它不适合直接做算术。字符串会经过解码和重新编码，所以转义的写法可能改变；对象键顺序默认保留。
 
-输入最大 16 MiB。嵌套深度由 Python 解码器和递归限制决定，因此 `--check` 可能接受格式化无法处理的深度；解码或渲染触及限制时会报告受控错误。程序没有大型流式 JSON 或 JSON Lines 支持。
+单份 JSON 输入最大 16 MiB。嵌套深度由 Python 解码器和递归限制决定，因此 `--check` 可能接受格式化无法处理的深度；解码或渲染触及限制时会报告受控错误。大型单份 JSON 的流式解析尚未实现；每行一份文档使用独立的 `jsonl` 命令。
 
 不指定文件时，可以直接管道传入：
 
@@ -31,6 +31,39 @@ python -m offline_devkit json examples/config.json --compact | python -m offline
 ```
 
 不要使用 `... json config.json > config.json`：shell 会先清空输入文件。请写到新的文件。
+
+## JSON Lines / NDJSON
+
+```bash
+python -m offline_devkit jsonl [FILE] [--json] [--max-line-bytes BYTES] [--max-errors N]
+```
+
+| 参数 | 默认值 | 含义 |
+| --- | --- | --- |
+| `FILE` | `-` | UTF-8 未压缩输入；`-` 从标准输入读取 |
+| `--json` | 关闭 | 输出机器可读检查报告 |
+| `--max-line-bytes` | `1048576` | 每条记录的字节上限，不含结尾 LF 或 CRLF，必须为正整数 |
+| `--max-errors` | `20` | 保留前 N 条错误，N 可为 0；继续检查并统计后面的全部行 |
+
+每个物理行是一份 JSON，顶层标量允许。空白行、BOM、无效 UTF-8、重复键、`NaN` / `Infinity`、超长行均是错误。CRLF 可用，最后一条记录可以不带换行；空文件表示 0 条记录。区别于 `json` 命令，JSON Lines 开头也不接受 BOM。只检查语法与本工具的严格规则，不验证业务 schema。
+
+| 报告字段 | 含义 |
+| --- | --- |
+| `lines_checked` | 读到并检查的物理记录数 |
+| `valid_lines` / `invalid_lines` | 检查成功 / 失败的行数 |
+| `errors` | 前 N 个错误对象，含从 1 开始的 `line` 和 `message` |
+| `errors_omitted` | 超出错误样本上限而省略的错误数量 |
+| `complete` | 是否完整读到输入末尾；记录无效与读取不完整是不同状态 |
+| `read_error` | 中途读取失败的说明；完整读取时为 `null` |
+
+超长记录会以有限大小的块排空，然后继续检查下一行，整条超长行只计一次。内存随单行上限和保留的错误样本增长，不随整个文件长度增长。记录嵌套仍受 Python 解码器限制。读到无效记录或 `complete=false` 时返回 2；完整且全部有效返回 0。文件根本打不开或参数无效时，标准错误报告错误并返回 2，不生成 JSON 报告。`--max-errors 0` 仍不会将有错误的文件报告为成功。
+
+```bash
+python -m offline_devkit jsonl examples/records.jsonl
+python -m offline_devkit jsonl examples/invalid-records.jsonl --json
+```
+
+`--json` 时错误保存在报告中；普通文本模式把行错误写入标准错误。报告请保存到新的文件。
 
 ## 目录命令共同参数
 

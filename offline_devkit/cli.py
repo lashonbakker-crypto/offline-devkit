@@ -9,6 +9,7 @@ from typing import Any, Sequence
 from . import __version__
 from .files import duplicate_report, scan_directory, size_report
 from .json_tools import JsonError, format_json, parse_json
+from .jsonl_tools import DEFAULT_MAX_ERRORS, DEFAULT_MAX_LINE_BYTES, validate_jsonl
 
 MAX_JSON_BYTES = 16 * 1024 * 1024
 
@@ -33,7 +34,7 @@ def _positive(value: str) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="offline-devkit",
-        description="Read-only local tools for JSON, duplicate files, and directory sizes.",
+        description="Read-only local tools for JSON, JSON Lines, duplicate files, and directory sizes.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -44,6 +45,12 @@ def _parser() -> argparse.ArgumentParser:
     formatter.add_argument("--sort-keys", action="store_true", help="sort object keys")
     formatter.add_argument("--compact", action="store_true", help="remove insignificant whitespace")
     formatter.add_argument("--indent", type=int, choices=(2, 4), default=2)
+
+    lines = commands.add_parser("jsonl", help="validate JSON Lines with line-numbered errors and bounded reads")
+    lines.add_argument("file", nargs="?", default="-", help="UTF-8 JSONL/NDJSON file; - means stdin")
+    lines.add_argument("--json", action="store_true", dest="as_json", help="emit a machine-readable validation report")
+    lines.add_argument("--max-line-bytes", type=_positive, default=DEFAULT_MAX_LINE_BYTES, metavar="BYTES", help="record byte limit excluding LF/CRLF; default 1048576")
+    lines.add_argument("--max-errors", type=_non_negative, default=DEFAULT_MAX_ERRORS, metavar="N", help="retain the first N errors while checking all lines; default 20")
 
     for command, help_text in (
         ("dupes", "find duplicate content using SHA-256; never delete files"),
@@ -116,6 +123,19 @@ def _print_report(command: str, report: dict[str, Any], as_json: bool) -> None:
         print(f"warning: {error}", file=sys.stderr)
 
 
+def _print_jsonl_report(report: dict[str, Any], as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    print(f"Lines checked: {report['lines_checked']}; valid: {report['valid_lines']}; invalid: {report['invalid_lines']}")
+    for error in report["errors"]:
+        print(f"line {error['line']}: {error['message']}", file=sys.stderr)
+    if report["errors_omitted"]:
+        print(f"Additional errors omitted: {report['errors_omitted']}", file=sys.stderr)
+    if not report["complete"]:
+        print(f"error: incomplete input: {report['read_error']}", file=sys.stderr)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     # UTF-8 and LF output on Windows consoles as well as redirected streams.
@@ -130,6 +150,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 sys.stdout.write(format_json(text, indent=args.indent, sort_keys=args.sort_keys, compact=args.compact))
             return 0
+        if args.command == "jsonl":
+            options = {"max_line_bytes": args.max_line_bytes, "max_errors": args.max_errors}
+            if args.file == "-":
+                report = validate_jsonl(getattr(sys.stdin, "buffer", sys.stdin), **options)
+            else:
+                with Path(args.file).expanduser().open("rb") as stream:
+                    report = validate_jsonl(stream, **options)
+            _print_jsonl_report(report, args.as_json)
+            return 2 if report["invalid_lines"] or not report["complete"] else 0
         scan = scan_directory(args.directory, exclude=tuple(args.exclude), include_ignored=args.include_ignored)
         report = duplicate_report(scan, min_size=args.min_size) if args.command == "dupes" else size_report(scan, top=args.top)
         _print_report(args.command, report, args.as_json)

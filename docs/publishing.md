@@ -1,4 +1,21 @@
-# 首次创建与上传
+# 发布与下载包
+
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.2.0。
+
+## 单文件运行包
+
+```bash
+python -m unittest discover -s tests -v
+python scripts/build_zipapp.py
+python dist/offline-devkit.pyz --version
+python dist/offline-devkit.pyz jsonl examples/records.jsonl --json
+```
+
+构建只依赖 Python 标准库，不需要下载第三方包。`dist/` 是生成目录，不提交到 Git。发布时将 `offline-devkit.pyz` 和 SHA-256 校验文件附加到 GitHub Release；源码通过该标签的标准 ZIP / tar.gz 提供。先检查该提交的实际五组 CI 结果，再发布对应版本。
+
+生成包包含本项目源码、入口与 MIT 许可证；需要 Python 3.10+。测试会在源码目录外确认归档能够独立导入，并正确传播失败退出码。
+
+## 首次创建记录
 
 建议名称：`offline-devkit`。建议公开，因为仓库内容是原创工具、虚构示例和技术文章。建议描述：
 

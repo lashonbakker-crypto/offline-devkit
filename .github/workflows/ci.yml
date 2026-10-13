@@ -51,5 +51,11 @@ jobs:
         run: |
           offline-devkit --version
           offline-devkit json examples/config.json --check
+          offline-devkit jsonl examples/records.jsonl --json
           offline-devkit dupes examples/files --json
           offline-devkit sizes examples/files --top 3 --json
+      - name: Build and check portable archive
+        run: |
+          python scripts/build_zipapp.py
+          python dist/offline-devkit.pyz --version
+          python dist/offline-devkit.pyz jsonl examples/records.jsonl --json
