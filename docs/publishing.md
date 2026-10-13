@@ -1,6 +1,6 @@
 # 发布与下载包
 
-仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.2.1。
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.3.0，下载包包含 `dupes --verify-bytes`。
 
 ## 单文件运行包
 
@@ -48,9 +48,9 @@ python offline-devkit.pyz --version
 python offline-devkit.pyz json --compact
 ```
 
-第一条在 v0.2.1 应输出 `offline-devkit 0.2.1`。第二条等待标准输入：输入 `{"number":1E-400}` 后结束输入（macOS / Linux：新行按 Ctrl+D；Windows：新行按 Ctrl+Z 后回车）。应输出 `{"number":1E-400}`，保留数字原文。单文件包仍需要 Python 3.10+；它不是无需 Python 的原生可执行文件。
+第一条在 v0.3.0 应输出 `offline-devkit 0.3.0`。第二条等待标准输入：输入 `{"number":1E-400}` 后结束输入（macOS / Linux：新行按 Ctrl+D；Windows：新行按 Ctrl+Z 后回车）。应输出 `{"number":1E-400}`，保留数字原文。单文件包仍需要 Python 3.10+；它不是无需 Python 的原生可执行文件。
 
-For v0.2.1, the first command prints `offline-devkit 0.2.1`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
+For v0.3.0, the first command prints `offline-devkit 0.3.0`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
 
 ## 下载附件复验记录 — 2026-10-13
 

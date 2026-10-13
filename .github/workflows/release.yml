@@ -45,4 +45,4 @@ jobs:
             echo "::error::Release already exists; existing tags and assets will not be overwritten."
             exit 1
           fi
-          gh release create "$RELEASE_TAG" dist/offline-devkit.pyz dist/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Offline DevKit $RELEASE_TAG · JSONL checks & portable download" --notes-file "$notes" --latest
+          gh release create "$RELEASE_TAG" dist/offline-devkit.pyz dist/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Offline DevKit $RELEASE_TAG · read-only checks & portable download" --notes-file "$notes" --latest

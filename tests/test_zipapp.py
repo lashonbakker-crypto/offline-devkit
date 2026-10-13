@@ -54,9 +54,15 @@ class ZipappTests(unittest.TestCase):
         for name in ("a.txt", "b.txt"):
             (directory / name).write_bytes(b"same")
         duplicates = self.invoke("dupes", str(directory), "--json")
+        verified = self.invoke("dupes", str(directory), "--verify-bytes", "--json")
         sizes = self.invoke("sizes", str(directory), "--json")
         self.assertEqual(duplicates.returncode, 0, duplicates.stderr)
         self.assertEqual(json.loads(duplicates.stdout)["groups"][0]["paths"], ["a.txt", "b.txt"])
+        self.assertEqual(verified.returncode, 0, verified.stderr)
+        report = json.loads(verified.stdout)
+        self.assertTrue(report["verify_bytes"])
+        self.assertEqual(report["byte_comparisons"], 1)
+        self.assertEqual(report["groups"][0]["verified_by"], "bytes")
         self.assertEqual(sizes.returncode, 0, sizes.stderr)
         self.assertEqual(json.loads(sizes.stdout)["total_bytes"], 8)
 

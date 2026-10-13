@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "offline-devkit"
-version = "0.2.1"
+version = "0.3.0"
 description = "Offline JSON/JSONL validation, lossless JSON formatting, duplicate files and directory sizes."
 readme = "README.md"
 requires-python = ">=3.10"
