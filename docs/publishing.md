@@ -21,43 +21,45 @@ python dist/offline-devkit.pyz jsonl examples/records.jsonl --json
 
 发布任务只在手动触发时运行；GitHub 提供的短期令牌仅为发布 job 开启仓库内容写权限，不持久化凭据。该流程不会在普通提交或 PR 时自动发布。
 
-## 首次创建记录
+## 下载后验证 / Verify your download
 
-建议名称：`offline-devkit`。建议公开，因为仓库内容是原创工具、虚构示例和技术文章。建议描述：
+从同一个 [Release](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 下载 `offline-devkit.pyz` 和 `SHA256SUMS.txt`，放在同一个目录，再在该目录打开终端。以下命令只读取两个文件，不需要 pip，也不会运行归档内容：
 
-> Zero-dependency local Python tools: lossless JSON formatting, duplicate finder, and directory sizes. 中文教程与可读源码。
-
-建议 Topics：`python`、`cli`、`developer-tools`、`json`、`duplicate-files`、`offline`、`chinese`。
-
-这些是建议元数据，只有实际创建并设置后才会出现在 GitHub。
-
-## 网页创建
-
-1. 用 `lashonbakker-crypto` 账号打开 GitHub 的 New repository。
-2. 名称填写 `offline-devkit`，选择 Public，填写上述描述。
-3. 上传现有源码时不要额外初始化 README 或许可证，以免产生重复初始历史。
-4. 创建后在本地仓库配置远端并 push；也可以上传完整文件树，注意包含 `.github` 下的配置。
-
-## 可选：GitHub CLI
-
-从官方来源安装 `gh`，在自己的终端登录，不要把令牌发到聊天里。先确认当前账号：
+Download both assets from the same release into one directory, then open a terminal there. This standard-library command reads the files without executing the archive. On Windows use `py -3` if needed; on macOS / Linux use `python3` if `python` is unavailable.
 
 ```bash
-gh auth login
-gh api user --jq .login
+python -c "import hashlib, sys; from pathlib import Path; expected = Path('SHA256SUMS.txt').read_text(encoding='utf-8').split()[0]; actual = hashlib.sha256(Path('offline-devkit.pyz').read_bytes()).hexdigest(); ok = actual == expected; print('SHA-256 OK' if ok else 'SHA-256 MISMATCH'); sys.exit(0 if ok else 2)"
 ```
 
-结果应为 `lashonbakker-crypto`。进入解压后的 `offline-devkit` 目录，确认只包含本项目文件：
+完整且匹配的下载应输出 `SHA-256 OK`，退出码为 0。输出 `SHA-256 MISMATCH`、退出码为 2 时，重新从同一版本下载两个附件再检查；文件缺失或校验文件为空会产生 Python 错误并返回非零状态。不要混用不同版本的校验文件。
+
+A matching download prints `SHA-256 OK` and exits 0. A mismatch prints `SHA-256 MISMATCH` and exits 2: download both assets again from the same version. Missing files or an empty checksum file produce a Python error and a nonzero status.
+
+SHA-256 是根据文件内容计算的摘要，内容变化会使这里的比较失败。它能帮助发现下载损坏或版本混用；同时下载的校验文件不是独立签名，不能证明发布者身份。
+
+The checksum helps detect corrupted or mismatched downloads. It is not an independent signature or proof of the publisher's identity.
+
+确认校验结果后，可在源码仓库之外运行这两个命令：
+
+After verifying, run these commands outside the source repository:
 
 ```bash
-git init -b main
-git add .
-git commit -m "feat: add offline developer toolkit with tests and guides"
-gh repo create lashonbakker-crypto/offline-devkit --public --source=. --remote=origin --push --description "Zero-dependency local Python tools: lossless JSON formatting, duplicate finder, and directory sizes."
+python offline-devkit.pyz --version
+python offline-devkit.pyz json --compact
 ```
 
-Git 尚未配置作者时，请先使用自己的署名配置 `user.name` 和 GitHub 提供的隐私邮箱。源码 ZIP 不包含 `.git` 历史，所以需要上面的本地初始化步骤。
+第一条在 v0.2.1 应输出 `offline-devkit 0.2.1`。第二条等待标准输入：输入 `{"number":1E-400}` 后结束输入（macOS / Linux：新行按 Ctrl+D；Windows：新行按 Ctrl+Z 后回车）。应输出 `{"number":1E-400}`，保留数字原文。单文件包仍需要 Python 3.10+；它不是无需 Python 的原生可执行文件。
 
-## 创建后完善
+For v0.2.1, the first command prints `offline-devkit 0.2.1`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
 
-设置上面建议的 Topics，在 Actions 检查首轮测试。可以在仓库支持时启用私密漏洞报告。确认内容与 CI 后，再建立 `v0.1.0` 标签和 Release，不提前宣称跨平台验证已通过。
+## 下载附件复验记录 — 2026-10-13
+
+在 Linux / Python 3.12.14 实际下载 v0.2.1 的两个 Release 附件并验证：
+
+- 归档为 9841 字节，SHA-256 为 `20aaaa2e9fdd6ec80206de323b54dcd7116f2c3cac9f0d128fcaa0efc8f6cd47`，与下载的校验文件和 GitHub 附件摘要一致。
+- 归档内全部 `offline_devkit/*.py` 的字节与发布提交 `aa10216c29d6a3158d82842d708d5c53954c71cb` 一致。
+- 在源码目录外用 `python -I` 运行实际附件：0 / 1 个 UTF-8 BOM 的 JSON 成功，2 / 3 个 BOM 返回 2 且无标准输出；`1E-400` 原文保留；含 `NaN` 的 JSONL 返回 2。
+
+This verification used the downloaded v0.2.1 assets on Linux / Python 3.12.14, rather than a locally rebuilt archive. It confirmed the checksum, module bytes, isolated execution, repeated-BOM rejection, numeric token retention, and JSONL error status. It does not add a fresh Windows or macOS download test.
+
+对应的[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38347789821)与[发布提交五组 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38347585542)均已实际查看，结果成功。将来的版本应重新核对附件和对应提交的运行结果。

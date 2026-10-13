@@ -34,6 +34,8 @@ python offline-devkit.pyz --help
 python offline-devkit.pyz sizes . --top 5
 ```
 
+下载后可按[校验说明](docs/publishing.md)检查 SHA-256。
+
 无需 pip 或构建工具。Windows 可用 `py -3`；macOS / Linux 可用 `python3`。下载需要网络，下载后的运行不需要网络。
 
 **方式二：从源码试用附带示例。**

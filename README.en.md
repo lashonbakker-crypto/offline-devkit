@@ -30,6 +30,8 @@ python offline-devkit.pyz --help
 python offline-devkit.pyz sizes . --top 5
 ```
 
+Verify the downloaded file with the [SHA-256 instructions](docs/publishing.md).
+
 Use `py -3` on Windows or `python3` on macOS / Linux when needed. Downloading requires network access; subsequent execution is offline.
 
 **Source option:** clone or extract the repository, then try the included fixtures:
