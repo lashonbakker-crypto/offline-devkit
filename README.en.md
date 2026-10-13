@@ -99,7 +99,7 @@ Queued directories are checked before entry and after listing. An observed repla
 python -m unittest discover -s tests -v
 ```
 
-CI covers Linux / Python 3.10, 3.12, 3.14 and Windows, macOS / Python 3.12. It checks behavior, installation, and the portable archive. **Use the badge and [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions) for the current commit's result.**
+CI covers Linux / Python 3.10, 3.12, 3.14 and Windows and macOS 15 (Intel) / Python 3.12. It checks behavior, installation, and the portable archive. **Use the badge and [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions) for the current commit's result.**
 
 Build the single-file archive using only the standard library:
 

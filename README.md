@@ -146,7 +146,7 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 python -m unittest discover -s tests -v
 ```
 
-CI 覆盖 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.12，运行行为测试、安装检查和单文件包检查。**当前提交是否通过，请查看顶部徽章与 [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions)。**
+CI 覆盖 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS 15（Intel）/ Python 3.12，运行行为测试、安装检查和单文件包检查。**当前提交是否通过，请查看顶部徽章与 [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions)。**
 
 ## 使用边界
 
