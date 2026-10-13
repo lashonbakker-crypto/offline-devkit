@@ -64,6 +64,7 @@ def _parser() -> argparse.ArgumentParser:
         if command == "dupes":
             scanner.add_argument("--min-size", type=_non_negative, default=1, metavar="BYTES", help="minimum file size; default 1 skips empty files")
             scanner.add_argument("--fail-if-found", action="store_true", help="return exit code 1 when duplicate groups exist")
+            scanner.add_argument("--verify-bytes", action="store_true", help="confirm same-hash files byte for byte")
         else:
             scanner.add_argument("--top", type=_positive, default=10, help="maximum number of largest files to show")
     return parser
@@ -107,6 +108,8 @@ def _print_report(command: str, report: dict[str, Any], as_json: bool) -> None:
         print(f"Duplicate groups: {len(report['groups'])}")
         print(f"Redundant content: {_human_size(report['redundant_bytes'])} (logical estimate)")
         print(f"Files hashed: {report['files_hashed']}; hard-link aliases skipped: {report['hardlinks_skipped']}")
+        if report["verify_bytes"]:
+            print(f"Byte-for-byte comparisons: {report['byte_comparisons']}")
         for index, group in enumerate(report["groups"], start=1):
             print(f"\nGroup {index}: {_human_size(group['size_bytes'])} each; SHA-256 {group['sha256']}")
             for path in group["paths"]:
@@ -161,7 +164,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_jsonl_report(report, args.as_json)
             return 2 if report["invalid_lines"] or not report["complete"] else 0
         scan = scan_directory(args.directory, exclude=tuple(args.exclude), include_ignored=args.include_ignored)
-        report = duplicate_report(scan, min_size=args.min_size) if args.command == "dupes" else size_report(scan, top=args.top)
+        report = duplicate_report(
+            scan, min_size=args.min_size, verify_bytes=args.verify_bytes,
+        ) if args.command == "dupes" else size_report(scan, top=args.top)
         _print_report(args.command, report, args.as_json)
         if report["errors"]:
             return 2

@@ -142,6 +142,18 @@ class CliTests(unittest.TestCase):
         self.assertEqual((self.root / "a").read_bytes(), b"same")
         self.assertEqual((self.root / "b").read_bytes(), b"same")
 
+    def test_duplicate_byte_verification_is_reported(self):
+        for name in ("a", "b"):
+            (self.root / name).write_bytes(b"same")
+        status, output, errors = self.invoke(
+            "dupes", str(self.root), "--json", "--verify-bytes",
+        )
+        report = json.loads(output)
+        self.assertEqual((status, errors), (0, ""))
+        self.assertTrue(report["verify_bytes"])
+        self.assertEqual(report["byte_comparisons"], 1)
+        self.assertEqual(report["groups"][0]["verified_by"], "bytes")
+
     def test_missing_directory_has_exit_two(self):
         status, output, errors = self.invoke("sizes", str(self.root / "missing"))
         self.assertEqual(status, 2)

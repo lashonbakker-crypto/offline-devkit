@@ -152,6 +152,49 @@ def sha256_file(record: FileRecord) -> str:
     return digest.hexdigest()
 
 
+def files_equal(left: FileRecord, right: FileRecord) -> bool:
+    """Compare two scanned regular files in bounded chunks.
+
+    Both file identities are checked before and after reading. This is an
+    optional second pass after hashing, not a filesystem snapshot.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    streams = []
+    try:
+        for record in (left, right):
+            descriptor = os.open(record.path, flags)
+            stream = os.fdopen(descriptor, "rb")
+            streams.append((record, stream))
+            info = os.fstat(stream.fileno())
+            expected = (record.device, record.inode, record.size, record.mtime_ns)
+            if not stat.S_ISREG(info.st_mode) or _signature(info) != expected:
+                raise OSError("file changed since scan; rerun when files are stable")
+        equal = True
+        while True:
+            left_chunk = streams[0][1].read(CHUNK_BYTES)
+            right_chunk = streams[1][1].read(CHUNK_BYTES)
+            if left_chunk != right_chunk:
+                equal = False
+                break
+            if not left_chunk:
+                break
+        for record, stream in streams:
+            expected = (record.device, record.inode, record.size, record.mtime_ns)
+            after = os.fstat(stream.fileno())
+            current = record.path.lstat()
+            if (
+                _linked(current)
+                or _signature(after) != expected
+                or _signature(current) != expected
+            ):
+                raise OSError("file changed while comparing; rerun when files are stable")
+        return equal
+    finally:
+        for _, stream in streams:
+            stream.close()
+
+
 def _metadata(scan: Scan) -> dict[str, Any]:
     return {
         "root": str(scan.root),
@@ -162,8 +205,10 @@ def _metadata(scan: Scan) -> dict[str, Any]:
     }
 
 
-def duplicate_report(scan: Scan, *, min_size: int = 1) -> dict[str, Any]:
-    """Compare size, then SHA-256. Hard-link aliases are counted only once."""
+def duplicate_report(
+    scan: Scan, *, min_size: int = 1, verify_bytes: bool = False,
+) -> dict[str, Any]:
+    """Compare size and SHA-256, optionally confirming equal bytes."""
     if min_size < 0:
         raise ValueError("min_size must be non-negative")
     by_size: dict[int, list[FileRecord]] = defaultdict(list)
@@ -181,31 +226,64 @@ def duplicate_report(scan: Scan, *, min_size: int = 1) -> dict[str, Any]:
     report = _metadata(scan)
     groups = []
     files_hashed = 0
+    byte_comparisons = 0
     for size, records in sorted(by_size.items()):
         if len(records) < 2:
             continue
-        by_hash: dict[str, list[str]] = defaultdict(list)
+        by_hash: dict[str, list[FileRecord]] = defaultdict(list)
         for record in records:
             try:
                 digest = sha256_file(record)
                 files_hashed += 1
-                by_hash[digest].append(record.relative_path)
+                by_hash[digest].append(record)
             except OSError as error:
                 report["errors"].append(
                     f"{record.relative_path!r}: {error.strerror or str(error)}"
                 )
-        for digest, paths in sorted(by_hash.items()):
-            if len(paths) > 1:
+        for digest, candidates in sorted(by_hash.items()):
+            content_groups: list[list[FileRecord]] = []
+            for candidate in candidates:
+                if not verify_bytes:
+                    if not content_groups:
+                        content_groups.append([])
+                    content_groups[0].append(candidate)
+                    continue
+                matched = False
+                comparison_failed = False
+                for content_group in content_groups:
+                    byte_comparisons += 1
+                    representative = content_group[0]
+                    try:
+                        if files_equal(representative, candidate):
+                            content_group.append(candidate)
+                            matched = True
+                            break
+                    except OSError as error:
+                        report["errors"].append(
+                            f"{representative.relative_path!r} <-> "
+                            f"{candidate.relative_path!r}: {error.strerror or str(error)}"
+                        )
+                        comparison_failed = True
+                        break
+                if not matched and not comparison_failed:
+                    content_groups.append([candidate])
+            for records_group in content_groups:
+                if len(records_group) < 2:
+                    continue
+                paths = sorted(record.relative_path for record in records_group)
                 groups.append({
                     "sha256": digest,
                     "size_bytes": size,
                     "paths": sorted(paths),
                     "redundant_bytes": size * (len(paths) - 1),
+                    "verified_by": "bytes" if verify_bytes else "sha256",
                 })
     groups.sort(key=lambda group: (-group["redundant_bytes"], group["paths"][0]))
     report.update(
         min_size_bytes=min_size,
         files_hashed=files_hashed,
+        byte_comparisons=byte_comparisons,
+        verify_bytes=verify_bytes,
         hardlinks_skipped=hardlinks_skipped,
         groups=groups,
         redundant_bytes=sum(group["redundant_bytes"] for group in groups),

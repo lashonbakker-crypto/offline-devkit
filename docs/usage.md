@@ -91,10 +91,12 @@ Glob 匹配区分大小写，规则为 Python `fnmatch.fnmatchcase`。相对路�
 ## 重复文件
 
 ```bash
-python -m offline_devkit dupes [DIRECTORY] [--min-size BYTES] [--fail-if-found] [共同参数]
+python -m offline_devkit dupes [DIRECTORY] [--min-size BYTES] [--verify-bytes] [--fail-if-found] [共同参数]
 ```
 
 默认 `--min-size 1` 不纳入空文件。`--min-size 0` 包含空文件；字节数必须是非负整数。只有存在相同大小的候选文件才计算哈希。
+
+默认以相同长度和 SHA-256 作为重复依据。`--verify-bytes` 会把同哈希候选再次按 1 MiB 分块逐字节比较，可排除理论上的哈希碰撞；代价是再次读取候选内容。比较前后同样核对文件身份和元数据，检测到变化会写入 `errors` 并返回 2。
 
 同一设备与 inode 的硬链接路径只保留字典序最前的一条参与哈希；如果文件系统不提供有效 inode，则无法可靠去重硬链接。报告输出不表示保留 / 删除建议。工具没有文件删除接口。
 
@@ -105,10 +107,13 @@ python -m offline_devkit dupes [DIRECTORY] [--min-size BYTES] [--fail-if-found] 
 | `root` | 绝对扫描路径 |
 | `files_scanned` | 纳入扫描的普通文件路径数 |
 | `files_hashed` | 成功计算 SHA-256 的候选文件数 |
+| `verify_bytes` | 本次是否启用逐字节复核 |
+| `byte_comparisons` | 实际执行的候选文件对比较次数；未启用时为 0 |
 | `hardlinks_skipped` | 跳过的硬链接别名数 |
 | `min_size_bytes` | 本次最小文件长度 |
-| `groups` | 相同长度、相同 SHA-256 的分组 |
+| `groups` | 默认是相同长度、相同 SHA-256 的分组；复核时还要求字节相同 |
 | `groups[].sha256` | 内容摘要 |
+| `groups[].verified_by` | `sha256` 或 `bytes`，说明该组采用的最终依据 |
 | `groups[].size_bytes` | 每个文件的逻辑长度 |
 | `groups[].paths` | 按字典序排序的相对路径 |
 | `groups[].redundant_bytes` | `size_bytes × (paths 数量 − 1)` |
@@ -117,7 +122,7 @@ python -m offline_devkit dupes [DIRECTORY] [--min-size BYTES] [--fail-if-found] 
 | `excluded_entries` | 默认目录或自定义 glob 排除的入口数 |
 | `errors` | 未完成读取、文件变化、权限等错误 |
 
-哈希前后检查设备、inode、长度、纳秒修改时间和读取字节数。文件消失、被替换或检测到修改时加入 `errors`，不会悄悄当作成功。检查无法检测所有并发变化；SHA-256 分组也不提供逐字节复核。
+哈希和可选字节比较前后会检查设备、inode、长度、纳秒修改时间；哈希还核对读取字节数。文件消失、被替换或检测到修改时加入 `errors`，不会悄悄当作成功。检查无法检测所有并发变化，也不能保证报告生成后文件仍未改变。
 
 ## 目录大小
 

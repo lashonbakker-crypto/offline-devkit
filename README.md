@@ -16,7 +16,7 @@ Local data checks, exact JSON numbers, and read-only file reports. **Python 3.10
 | --- | --- | --- |
 | `json` | 配置文件难读、重复键、非标准数字 | 保留数字原文，拒绝重复键与 `NaN` / `Infinity` |
 | `jsonl` | 日志或数据集中某一行有问题 | 逐行检查、准确行号、单行大小限制、完整计数与有限错误样本 |
-| `dupes` | 下载目录、资料备份里有重复内容 | 先按大小筛选，再分块计算 SHA-256；硬链接只算一次 |
+| `dupes` | 下载目录、资料备份里有重复内容 | 大小与 SHA-256 筛选；可选逐字节复核；硬链接只算一次 |
 | `sizes` | 想知道哪个子目录、哪些文件最大 | 汇总一级目录，输出最大文件与机器可读报告 |
 
 ### 30 秒看懂
@@ -100,8 +100,11 @@ python -m offline_devkit jsonl examples/invalid-records.jsonl --json
 
 ```bash
 python -m offline_devkit dupes ./Downloads --min-size 1024 --exclude "*.tmp"
+python -m offline_devkit dupes ./Downloads --verify-bytes --json
 python -m offline_devkit dupes ./Downloads --json > duplicates-report.json
 ```
+
+默认先按大小筛选，再用 SHA-256 分组。需要更强的内容证据时使用 `--verify-bytes`，它会对同哈希候选再做分块逐字节比较，并在 JSON 报告中标记 `verified_by: "bytes"`。这会多读取一遍候选内容，速度可能更慢。
 
 工具只报告，**没有删除或修改文件的功能**。`redundant_bytes` 是冗余内容的逻辑字节估计，不代表真实可释放磁盘空间。报告中的第一条路径只是排序结果，不是建议保留的文件。
 
@@ -150,7 +153,7 @@ CI 覆盖 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS / Python 3.
 - 在稳定、可信的本地目录运行。扫描不是文件系统快照，也不是对恶意并发修改的隔离边界；检测到文件变化会报告错误，但无法检测所有竞态。
 - 等待扫描的目录会在进入前、列出条目后重新核对。发现目录被替换为链接或其他目录时，跳过该目录、记录 `errors`，并返回退出码 2；这仍不能排除检查与使用之间的替换，或完全防护祖先目录的变化。详见[扫描边界](docs/usage.md#目录命令共同参数)。
 - `sizes` 统计文件长度（逻辑大小），硬链接的每个路径都会计数；压缩、稀疏文件、写时复制、磁盘块占用不在本项目统计范围。
-- SHA-256 相同是重复内容的实用判断依据；本工具没有逐字节复核，也不提供数学上零碰撞的证明。
+- SHA-256 相同是默认的重复内容判断依据；可用 `dupes --verify-bytes` 增加逐字节复核。扫描仍不是稳定快照，不能排除检查结束后的文件变化。
 - 输出报告包含文件路径，分享报告前请检查内容。程序不发起网络请求；保存标准输出由你的 shell 负责。
 - 不要将格式化结果重定向回原输入文件，也不要把目录扫描报告写入正在扫描的目录。用新文件或目录外的路径。
 

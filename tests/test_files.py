@@ -7,7 +7,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from offline_devkit.files import (
-    CHUNK_BYTES, duplicate_report, scan_directory, sha256_file, size_report,
+    CHUNK_BYTES, duplicate_report, files_equal, scan_directory, sha256_file,
+    size_report,
 )
 
 
@@ -40,6 +41,29 @@ class FileTests(unittest.TestCase):
         self.write("large.bin", content)
         record = scan_directory(self.root).files[0]
         self.assertEqual(sha256_file(record), hashlib.sha256(content).hexdigest())
+
+    def test_byte_comparison_streams_multiple_chunks(self):
+        content = b"abc\x00" * (CHUNK_BYTES // 2 + 1)
+        self.write("a.bin", content)
+        self.write("b.bin", content)
+        left, right = scan_directory(self.root).files
+        self.assertTrue(files_equal(left, right))
+        self.write("b.bin", content[:-1] + b"x")
+        right = scan_directory(self.root).files[1]
+        self.assertFalse(files_equal(left, right))
+
+    def test_optional_byte_verification_splits_a_simulated_hash_collision(self):
+        self.write("a", b"same")
+        self.write("b", b"same")
+        self.write("collision", b"diff")
+        scan = scan_directory(self.root)
+        with patch("offline_devkit.files.sha256_file", return_value="0" * 64):
+            hashed = duplicate_report(scan)
+            verified = duplicate_report(scan, verify_bytes=True)
+        self.assertEqual(hashed["groups"][0]["paths"], ["a", "b", "collision"])
+        self.assertEqual(verified["groups"][0]["paths"], ["a", "b"])
+        self.assertEqual(verified["groups"][0]["verified_by"], "bytes")
+        self.assertEqual(verified["byte_comparisons"], 2)
 
     def test_empty_files_are_opt_in(self):
         self.write("empty-a", b"")

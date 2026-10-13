@@ -12,7 +12,7 @@ A Python standard-library CLI for config files, JSONL datasets and logs, downloa
 | --- | --- | --- |
 | `json` | Validate or format UTF-8 JSON | Preserves numeric tokens exactly; rejects duplicate keys and NaN/Infinity |
 | `jsonl` | Check JSONL / NDJSON records | Physical line numbers, bounded record reads, full counts with a bounded error sample |
-| `dupes` | Find duplicate file content | Groups by size, hashes in chunks with SHA-256, skips hard-link aliases |
+| `dupes` | Find duplicate file content | Size/SHA-256 filtering, optional byte verification, hard-link handling |
 | `sizes` | Inspect logical file sizes | Top-level directory totals and largest files; JSON output available |
 
 ## See it in 30 seconds
@@ -66,6 +66,7 @@ python -m offline_devkit json config.json --sort-keys > formatted.json
 python -m offline_devkit jsonl examples/records.jsonl
 python -m offline_devkit jsonl examples/invalid-records.jsonl --json
 python -m offline_devkit dupes ./Downloads --min-size 1024 --exclude "*.tmp"
+python -m offline_devkit dupes ./Downloads --verify-bytes --json
 python -m offline_devkit sizes . --top 10 --json
 ```
 
@@ -86,7 +87,7 @@ For stdin, use the [Bash / PowerShell pipeline recipes](docs/04-jsonl-pipelines.
 - `2`: invalid input, invalid arguments, or an incomplete scan/read.
 - `130`: interrupted.
 
-Reports measure logical file sizes, not allocated or reclaimable disk space. Inventory counts hard-link paths separately; duplicate estimates count each file identity once. SHA-256 matches are practical duplicate evidence, not a zero-collision proof. No byte-for-byte verification is performed.
+Reports measure logical file sizes, not allocated or reclaimable disk space. Inventory counts hard-link paths separately; duplicate estimates count each file identity once. SHA-256 matches are the default duplicate evidence. Add `dupes --verify-bytes` to compare same-hash candidates in bounded chunks; the extra pass is slower and still is not a filesystem snapshot.
 
 Scan stable, trusted directories. This is not a filesystem snapshot or an isolation boundary against concurrent hostile changes. Reported paths can be sensitive. Do not redirect JSON output to its input file or place scan output inside the scanned directory.
 

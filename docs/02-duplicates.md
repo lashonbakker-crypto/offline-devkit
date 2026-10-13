@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 名字相同，内容不同 | 两个目录里的 `notes.txt` | 名字不参与重复判断 |
 | 大小相同，内容不同 | `same` 与 `diff` 都是 4 字节 | 进入候选，哈希不同，分组不同 |
-| 名字不同，内容相同 | 示例里的 `note.txt` 与 `note-copy.txt` | 同长度、同 SHA-256，生成一组 |
+| 名字不同，内容相同 | 示例里的 `note.txt` 与 `note-copy.txt` | 同长度、同 SHA-256，生成一组；可选逐字节复核 |
 | 两个硬链接 | 两条路径指向同设备的同 inode | 只参与一次哈希，不夸大冗余估计 |
 
 ## 为什么先按长度分组
@@ -29,9 +29,10 @@
 
 ```bash
 python -m offline_devkit dupes examples/files --json
+python -m offline_devkit dupes examples/files --verify-bytes --json
 python -m unittest discover -s tests -p test_files.py -v
 ```
 
-测试中包含同长度不同内容、跨块哈希、硬链接、链接目录和文件变化。这些检查对应真实误判风险。
+第二条命令会多读一次同哈希候选。观察 JSON 中 `verify_bytes` 为 `true`、`byte_comparisons` 为 `1`，重复组的 `verified_by` 为 `bytes`。测试中还包含模拟哈希碰撞、跨块比较、硬链接、链接目录和文件变化。这些检查对应真实误判风险。
 
 参考：[Python hashlib](https://docs.python.org/3/library/hashlib.html)、[Python os](https://docs.python.org/3/library/os.html)。返回 [实现原理](how-it-works.md)。
