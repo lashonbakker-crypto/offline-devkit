@@ -80,7 +80,8 @@ def _read_json(file: str) -> str:
             data = stream.read(MAX_JSON_BYTES + 1)
     if len(data) > MAX_JSON_BYTES:
         raise ValueError("JSON input exceeds the 16 MiB limit")
-    return data.decode("utf-8-sig")
+    # parse_json owns the single optional BOM; do not strip another here.
+    return data.decode("utf-8")
 
 
 def _human_size(size: int) -> str:

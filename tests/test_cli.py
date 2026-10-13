@@ -93,6 +93,30 @@ class CliTests(unittest.TestCase):
         status, _, errors = self.invoke("json", str(path), "--check")
         self.assertEqual((status, errors), (0, ""))
 
+    def test_binary_json_accepts_one_bom_but_rejects_repeated_boms(self):
+        path = self.root / "bom.json"
+        for prefixes in (0, 1, 2, 3):
+            data = b"\xef\xbb\xbf" * prefixes + b'{"number":1E-400}'
+            path.write_bytes(data)
+            for source in (str(path), "-"):
+                for mode in ("--check", "--compact"):
+                    with self.subTest(prefixes=prefixes, source=source, mode=mode):
+                        result = subprocess.run(
+                            [sys.executable, "-m", "offline_devkit", "json", source, mode],
+                            input=data if source == "-" else None,
+                            capture_output=True, cwd=REPO_ROOT, check=False,
+                        )
+                        if prefixes <= 1:
+                            self.assertEqual(result.returncode, 0, result.stderr)
+                            self.assertEqual(result.stderr, b"")
+                            expected = b"" if mode == "--check" else b'{"number":1E-400}\n'
+                            self.assertEqual(result.stdout, expected)
+                        else:
+                            self.assertEqual(result.returncode, 2, result.stderr)
+                            self.assertEqual(result.stdout, b"")
+                            self.assertIn(b"BOM", result.stderr)
+            self.assertEqual(path.read_bytes(), data)
+
     def test_input_limit_for_file_and_stdin(self):
         path = self.root / "large.json"
         path.write_text("[123456789]", encoding="utf-8")

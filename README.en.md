@@ -67,7 +67,7 @@ python -m offline_devkit dupes ./Downloads --min-size 1024 --exclude "*.tmp"
 python -m offline_devkit sizes . --top 10 --json
 ```
 
-JSON input is limited to 16 MiB, accepts a UTF-8 BOM, and retains exact number spellings including exponents and negative zero. Formatting may change whitespace and string escapes. Duplicate keys are checked after escape decoding.
+JSON input is limited to 16 MiB, accepts one leading UTF-8 BOM (repeated BOMs are rejected), and retains exact number spellings including exponents and negative zero. Formatting may change whitespace and string escapes. Duplicate keys are checked after escape decoding.
 
 Command output uses UTF-8 and LF newlines, including redirected output on Windows. Validation and formatting may support different nesting depths because Python decoder and recursion limits vary; exceeding those limits produces a controlled error.
 

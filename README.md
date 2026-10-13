@@ -77,7 +77,7 @@ python -m offline_devkit json examples/config.json --check
 python -m offline_devkit json examples/config.json --sort-keys > formatted.json
 ```
 
-`--check` 成功时没有输出，适合脚本检查。输入必须是 UTF-8，允许 BOM，大小上限为 16 MiB。格式化保留数字字符序列，包括指数、大整数、长小数与 `-0`；字符串的转义方式和空白可能变化。
+`--check` 成功时没有输出，适合脚本检查。输入必须是 UTF-8，允许开头一个 BOM，拒绝重复 BOM，大小上限为 16 MiB。格式化保留数字字符序列，包括指数、大整数、长小数与 `-0`；字符串的转义方式和空白可能变化。
 
 命令输出统一使用 UTF-8 和 LF 换行，包括 Windows 上的重定向输出。`--check` 与格式化的可处理嵌套深度可能不同，取决于 Python 的解码器和递归限制；超出能力时会报告错误。
 
