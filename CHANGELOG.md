@@ -5,6 +5,7 @@
 - 新增维护脚本 `scripts/verify_release_download.py`，先核对实际下载附件的 SHA-256、标签源码、入口与许可证，再在源码目录外执行版本、精确数字、16 种 BOM、重复报告、目录大小和 JSONL 检查。错误校验值或不同模块字节在运行归档前返回 2；文件命令与运行时依赖保持不变。
 - 新增只手动触发、只读仓库权限的 **Verify published download** 工作流：五组环境检查同一 Release 附件，而非各自重新构建的归档。补充中英文复现步骤与 v0.3.0 实际发布 / Linux 下载复验记录；其他平台结论以实际 Actions 结果为准。
 - 修正新下载验证在 Windows 上因 Git 将许可证检出为 CRLF 而产生的字节不一致误报：用 `git archive` 导出标签的原始字节，并将当前源码的 `LICENSE` 固定为 LF。继续严格核对源码字节，不修改已发布的标签或附件。
+- 为导出显式设置一次性的 `core.autocrlf=false` / `core.eol=lf`，防止普通 `git archive` 继续继承 Windows 换行转换。新增 `--source-ref`，让本地和 CI 共用同一实现；实际 Git 回归测试模拟 Windows 配置，确认原始字节保留且用户配置未变。
 
 ## 0.3.0 — 2026-10-13
 

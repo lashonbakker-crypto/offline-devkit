@@ -1,11 +1,13 @@
 """Verify downloaded release assets against source, then exercise the archive.
 
-No download or build is performed here. Use assets and source from the same
-release. All CLI probes run with isolated Python outside the source directory.
+No asset download or rebuild is performed here. Use assets and source from
+the same release. --source-ref optionally exports a local Git ref with LF
+line endings. All CLI probes run outside the source directory.
 """
 
 import argparse
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -22,6 +24,24 @@ ENTRY_POINT = b"from offline_devkit.cli import main\n\nraise SystemExit(main())\
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def export_release_source(repository: Path, destination: Path, ref: str) -> None:
+    """Export a local ref without inheriting Windows newline conversion.
+
+    The per-command settings do not change the user's Git configuration.
+    The caller provides an empty, temporary destination directory.
+    """
+    require(bool(ref) and not ref.startswith("-"), "expected a local Git ref")
+    data = subprocess.check_output(
+        [
+            "git", "-C", str(repository), "-c", "core.autocrlf=false",
+            "-c", "core.eol=lf", "archive", "--format=zip", ref,
+        ],
+        stderr=subprocess.PIPE,
+    )
+    with zipfile.ZipFile(io.BytesIO(data)) as source:
+        source.extractall(destination)
 
 
 def verify_assets(download: Path, source: Path) -> Path:
@@ -124,11 +144,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("download_directory", type=Path)
     parser.add_argument("--source-directory", type=Path, default=ROOT)
+    parser.add_argument("--source-ref", help="export this local Git ref from the source directory; requires Git")
     parser.add_argument("--expected-version", required=True)
     args = parser.parse_args()
     try:
-        archive = verify_assets(args.download_directory.resolve(), args.source_directory.resolve())
-        exercise_archive(archive, args.source_directory.resolve(), args.expected_version)
+        def verify(source: Path) -> None:
+            archive = verify_assets(args.download_directory.resolve(), source)
+            exercise_archive(archive, source, args.expected_version)
+
+        if args.source_ref is None:
+            verify(args.source_directory.resolve())
+        else:
+            with tempfile.TemporaryDirectory() as temporary:
+                source = Path(temporary)
+                export_release_source(args.source_directory.resolve(), source, args.source_ref)
+                verify(source)
     except (OSError, ValueError, UnicodeError, KeyError, TypeError, zipfile.BadZipFile, subprocess.SubprocessError) as error:
         parser.exit(2, f"verification failed: {error}\n")
 
