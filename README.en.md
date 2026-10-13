@@ -75,6 +75,8 @@ Command output uses UTF-8 and LF newlines, including redirected output on Window
 
 File operations are read-only. Symlinks and Windows reparse points are skipped. Dependency/cache directories are excluded by default; use `--include-ignored` to include them. `--exclude` is a repeatable, case-sensitive glob matched against a basename or root-relative path.
 
+For stdin, use the [Bash / PowerShell pipeline recipes](docs/04-jsonl-pipelines.en.md). They retain both producer and validator exit codes, set UTF-8 explicitly, and show why a producer failure can coexist with valid records.
+
 ## Exit codes and limits
 
 - `0`: complete; ordinary duplicate reports return 0 even when duplicates exist.
