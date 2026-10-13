@@ -46,7 +46,7 @@ python3 examples/produce_jsonl.py | python3 -m offline_devkit jsonl --json
 [完整 Bash 脚本](../scripts/check_jsonl_pipeline.sh) 的关键步骤是：
 
 ```bash
-"$devkit_python" examples/produce_jsonl.py "${producer_args[@]}" |
+"${producer_command[@]}" |
     "$devkit_python" -m offline_devkit jsonl --json
 pipeline_codes=("${PIPESTATUS[@]}")
 ```
@@ -56,6 +56,8 @@ pipeline_codes=("${PIPESTATUS[@]}")
 脚本打开 `pipefail`，并在自己的进程里关闭 `errexit`，以便先检查预期的非零状态。只要生成器失败，就返回生成器状态；否则返回校验器状态。需要从父脚本继续传播结果时，紧接着保存 `$?`，最后 `exit "$status"`。父脚本启用了 `set -e` 时，预期失败的示例应放在条件分支中运行。
 
 Python 命令默认是 `python3`，可用 `DEVKIT_PYTHON` 指定虚拟环境里的解释器；两端必须使用同一个 Python 环境。
+
+`producer_command` 数组始终至少包含解释器与脚本路径，再按模式添加一个参数；这样也适用于 macOS 自带的 Bash 3.2，避免该版本在 `set -u` 下把空数组展开当作未定义变量。
 
 ## PowerShell 7：明确 UTF-8，并保存生成器状态
 
@@ -102,7 +104,7 @@ python scripts/verify_jsonl_pipelines.py --shell powershell
 
 验证程序使用实际安装的 `bash` 或 `pwsh`，不是模拟 shell。没有对应程序时会明确失败。它检查三种情况的进程退出码、两端状态、行数、完整读取标志、第 2 行中文重复键错误，以及所有示例文件的 SHA-256 是否保持不变。中文键同时检验管道有没有把 UTF-8 文字改坏。
 
-本地已在 Linux / Python 3.12.14 / Bash 5.2.21 运行并通过。CI 的 Linux / macOS 执行 Bash 版本，Windows 执行 PowerShell 版本；每次输出实际 shell 与 Python 版本。远程结果请查看对应提交的 [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions)，不要把一台机器的结果当作所有平台的保证。
+本地已在 Linux / Python 3.12.14 / Bash 5.2.21 运行并通过。Windows / Python 3.12.10 / PowerShell 7.6.6 的三种情况也已在[实际 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38346713159)通过。同一轮发现 macOS / Bash 3.2.57 的空数组问题，上述脚本已改为非空命令数组；这项修正需要以其对应提交的 CI 为准。每次验证都会输出实际 shell 与 Python 版本。
 
 ## 读完应该能解释什么
 

@@ -30,7 +30,7 @@ For a valid input only, the underlying pipe is:
 python3 examples/produce_jsonl.py | python3 -m offline_devkit jsonl --json
 ```
 
-The recipe defaults to `python3`; set `DEVKIT_PYTHON` to a virtual environment's interpreter if necessary. Both commands must use the same Python environment.
+The recipe defaults to `python3`; set `DEVKIT_PYTHON` to a virtual environment's interpreter if necessary. Both commands must use the same Python environment. The command array always contains the interpreter and script path, avoiding Bash 3.2's empty-array expansion problem under `set -u` on macOS.
 
 ## PowerShell 7
 
@@ -56,7 +56,7 @@ python scripts/verify_jsonl_pipelines.py --shell powershell
 
 The verifier runs the actual shell and fails explicitly if it is missing. It checks all three process exit codes, both native statuses, counts, EOF state, the UTF-8 duplicate key on line 2, and unchanged hashes of the example files. The Chinese key also detects text corruption while passing through the pipeline.
 
-Local validation passed on Linux / Python 3.12.14 / Bash 5.2.21. Linux and macOS CI execute the Bash recipe; Windows CI executes the PowerShell recipe. The log prints the actual shell and Python versions. Inspect the relevant commit's [Actions](https://github.com/lashonbakker-crypto/offline-devkit/actions) before assuming any remote result.
+Local validation passed on Linux / Python 3.12.14 / Bash 5.2.21. The three Windows / Python 3.12.10 / PowerShell 7.6.6 cases also passed in [actual CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38346713159). That run exposed the macOS / Bash 3.2.57 empty-array issue; the script now uses a nonempty command array, with the fix subject to its own commit's CI. Each run prints actual shell and Python versions.
 
 After running the examples, explain why a syntactically valid partial stream can coexist with an overall failure, where each shell captures both statuses, and what `complete` actually means. Then read [jsonl_tools.py](../offline_devkit/jsonl_tools.py) and [cli.py](../offline_devkit/cli.py).
 
