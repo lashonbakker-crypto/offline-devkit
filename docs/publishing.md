@@ -15,6 +15,12 @@ python dist/offline-devkit.pyz jsonl examples/records.jsonl --json
 
 生成包包含本项目源码、入口与 MIT 许可证；需要 Python 3.10+。测试会在源码目录外确认归档能够独立导入，并正确传播失败退出码。
 
+## GitHub 自动构建发布
+
+在 Actions 中手动运行 **Release portable download**。它重新运行测试，从当前提交构建归档与 SHA-256，读取 `docs/releases/v版本.md`，建立与源码版本相同的标签和 Release，并附加两个下载文件。已有同名发布会停止，避免覆盖历史标签或附件。
+
+发布任务只在手动触发时运行；GitHub 提供的短期令牌仅为发布 job 开启仓库内容写权限，不持久化凭据。该流程不会在普通提交或 PR 时自动发布。
+
 ## 首次创建记录
 
 建议名称：`offline-devkit`。建议公开，因为仓库内容是原创工具、虚构示例和技术文章。建议描述：
