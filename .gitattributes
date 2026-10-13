@@ -7,3 +7,4 @@
 *.json text eol=lf
 *.svg text eol=lf
 *.txt text eol=lf
+LICENSE text eol=lf

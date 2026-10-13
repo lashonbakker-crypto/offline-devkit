@@ -55,6 +55,16 @@ jobs:
           ref: refs/tags/${{ inputs.tag }}
           path: released-source
           persist-credentials: false
+      - name: Export exact tagged bytes without checkout newline conversion
+        shell: python
+        run: |
+          import io, subprocess, zipfile
+          from pathlib import Path
+          data = subprocess.check_output(["git", "-C", "released-source", "archive", "--format=zip", "HEAD"])
+          destination = Path("release-source-bytes")
+          destination.mkdir()
+          with zipfile.ZipFile(io.BytesIO(data)) as source:
+              source.extractall(destination)
       - name: Download published assets without rebuilding
         shell: python
         run: |
@@ -75,8 +85,9 @@ jobs:
         shell: python
         run: |
           import os, subprocess, sys
-          subprocess.run([
+          result = subprocess.run([
               sys.executable, "scripts/verify_release_download.py", "release-download",
-              "--source-directory", "released-source",
+              "--source-directory", "release-source-bytes",
               "--expected-version", os.environ["RELEASE_TAG"][1:],
-          ], check=True)
+          ])
+          raise SystemExit(result.returncode)
