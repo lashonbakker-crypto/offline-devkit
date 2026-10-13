@@ -1,6 +1,6 @@
 # 发布与下载包
 
-仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.3.0，下载包包含 `dupes --verify-bytes`。
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.3.0；[v0.3.0 已实际发布](https://github.com/lashonbakker-crypto/offline-devkit/releases/tag/v0.3.0)，下载包包含 `dupes --verify-bytes`。
 
 ## 单文件运行包
 
@@ -52,7 +52,42 @@ python offline-devkit.pyz json --compact
 
 For v0.3.0, the first command prints `offline-devkit 0.3.0`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
 
-## 下载附件复验记录 — 2026-10-13
+## 可重复的附件复验 / Repeatable asset verification
+
+在包含本仓库源码的终端中，用新的验证脚本检查已下载的两个文件。以 v0.3.0 为例，假设附件放在仓库外的 `../release-download/`：
+
+```bash
+python scripts/verify_release_download.py ../release-download --expected-version 0.3.0
+```
+
+默认用当前源码核对归档内的六个模块、入口和许可证。要检查其他发布版本，使用该标签的源码目录，并追加 `--source-directory ../released-source`；不要用不同版本的源码验证附件。
+
+脚本先检查 SHA-256 和源码字节，两者通过后才运行归档。检查失败返回 2；成功输出 `SHA-256 OK`、`Source bytes OK` 和各项命令检查结果。实际命令在临时目录中通过 `python -I` 执行，以免误从源码目录导入模块：
+
+- 核对版本，以及大整数、长小数、指数和 `-0` 的原文。
+- 检查 0–3 个 BOM、文件 / 标准输入、校验 / 格式化共 16 种组合。
+- 运行默认哈希和逐字节复核两种重复报告，确认 `--fail-if-found` 返回 1，以及目录大小结果。
+- 检查有效 JSONL 的 3 行、无效示例的 4 行和第 2 / 3 行错误，确认输入错误返回 2、示例字节未改动。
+
+This script checks already-downloaded assets without downloading or rebuilding them. It verifies the checksum, all module bytes, the entry point and license against matching release source **before executing the archive**. It then runs isolated CLI probes in a temporary directory, checks exit codes and confirms fixture bytes are unchanged. Use `--source-directory` for a different release's source. Successful verification exits 0; failures exit 2. This checks compatibility and release consistency, not an independent publisher signature or application schemas.
+
+维护者可以在 Actions 手动运行 **Verify published download**，输入 `v0.3.0` 或后续标签。五组环境从 Release 下载相同的附件，不重新构建，并核对标签源码：Linux / Python 3.10、3.12、3.14，以及 Windows 和 macOS 15（Intel）/ Python 3.12。工作流只有仓库读取权限，不发布或覆盖附件；普通提交不会触发它。
+
+Maintainers can manually run **Verify published download** for a published tag. Its five environments download the same release assets, compare them with tagged source and run the verifier. It has read-only repository permissions and never publishes or overwrites assets. Intel macOS results do not establish Apple Silicon coverage.
+
+## v0.3.0 下载附件复验记录 — 2026-10-14
+
+在 Linux / Python 3.12.14 实际下载 v0.3.0 的两个附件并运行上述脚本：
+
+- 归档为 10514 字节，SHA-256 为 `7c5da2d75b60648946747345e008a30d0b9d745b2f076412f81a7b106afdd1cb`，与下载的校验文件和 GitHub 附件摘要一致。
+- 六个模块、入口与许可证匹配发布提交 `884ee1c45bd526f3ff9962d3fb98357114c2e9f3`；独立运行验证全部通过。
+- 用错误校验值复验，脚本返回 2 且未运行归档；替换模块并重算匹配的校验值，源码一致性检查仍返回 2，阻止运行该归档。
+
+该发布提交的[实际五组 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38423538515)均成功，包括 Intel macOS；[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38467046597)重新运行 69 项测试后成功。此处的本地实际附件复验只覆盖 Linux；Windows / macOS 的下载验证以 **Verify published download** 的实际运行结果为准。
+
+The downloaded v0.3.0 assets passed local verification on Linux / Python 3.12.14. The checksum matched GitHub's asset digest, archive bytes matched the release commit, and isolated CLI probes passed. Negative checks rejected a wrong checksum and changed module bytes before execution. The linked source CI and release workflow succeeded; consult the actual download-verification run for Windows/macOS asset results.
+
+## v0.2.1 下载附件复验记录 — 2026-10-13
 
 在 Linux / Python 3.12.14 实际下载 v0.2.1 的两个 Release 附件并验证：
 

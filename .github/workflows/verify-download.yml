@@ -1,0 +1,82 @@
+name: Verify published download
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Published release tag (v0.3.0 or newer)"
+        required: true
+        default: "v0.3.0"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.14"
+          - os: windows-latest
+            python: "3.12"
+          - os: macos-15-intel
+            python: "3.12"
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out verification tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate release tag
+        shell: python
+        run: |
+          import os, re
+          if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", os.environ["RELEASE_TAG"]) is None:
+              raise SystemExit("Expected a release tag such as v0.3.0")
+      - name: Check out matching release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          path: released-source
+          persist-credentials: false
+      - name: Download published assets without rebuilding
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          from urllib.request import urlopen
+          destination = Path("release-download")
+          destination.mkdir()
+          base = "https://github.com/" + os.environ["GITHUB_REPOSITORY"] + "/releases/download/" + os.environ["RELEASE_TAG"]
+          for name in ("offline-devkit.pyz", "SHA256SUMS.txt"):
+              with urlopen(base + "/" + name, timeout=30) as response:
+                  data = response.read(16 * 1024 * 1024 + 1)
+              if len(data) > 16 * 1024 * 1024:
+                  raise SystemExit("Release asset exceeds the 16 MiB verification limit")
+              (destination / name).write_bytes(data)
+              print(f"Downloaded {name}: {len(data)} bytes")
+      - name: Verify checksum, source bytes and isolated commands
+        shell: python
+        run: |
+          import os, subprocess, sys
+          subprocess.run([
+              sys.executable, "scripts/verify_release_download.py", "release-download",
+              "--source-directory", "released-source",
+              "--expected-version", os.environ["RELEASE_TAG"][1:],
+          ], check=True)
