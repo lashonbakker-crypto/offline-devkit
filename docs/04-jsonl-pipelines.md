@@ -104,7 +104,7 @@ python scripts/verify_jsonl_pipelines.py --shell powershell
 
 验证程序使用实际安装的 `bash` 或 `pwsh`，不是模拟 shell。没有对应程序时会明确失败。它检查三种情况的进程退出码、两端状态、行数、完整读取标志、第 2 行中文重复键错误，以及所有示例文件的 SHA-256 是否保持不变。中文键同时检验管道有没有把 UTF-8 文字改坏。
 
-本地已在 Linux / Python 3.12.14 / Bash 5.2.21 运行并通过。Windows / Python 3.12.10 / PowerShell 7.6.6 的三种情况也已在[实际 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38346713159)通过。同一轮发现 macOS / Bash 3.2.57 的空数组问题，上述脚本已改为非空命令数组；这项修正需要以其对应提交的 CI 为准。每次验证都会输出实际 shell 与 Python 版本。
+本地已在 Linux / Python 3.12.14 / Bash 5.2.21 运行并通过。首轮 CI 发现 macOS / Bash 3.2.57 的空数组问题，改为非空命令数组后，[实际 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/38346906082)的五组环境全部通过：Linux / Python 3.10、3.12、3.14，以及 macOS、Windows / Python 3.12。实际 PowerShell 版本为 7.6.6；每次验证都会输出 shell 与 Python 版本。运行配置会随时间变化，后续提交仍以其自己的 CI 结果为准。
 
 ## 读完应该能解释什么
 
