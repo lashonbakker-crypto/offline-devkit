@@ -1,6 +1,6 @@
 # 发布与下载包
 
-仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.3.0；[v0.3.0 已实际发布](https://github.com/lashonbakker-crypto/offline-devkit/releases/tag/v0.3.0)，下载包包含 `dupes --verify-bytes`。
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.4.0；[v0.4.0 已实际发布](https://github.com/lashonbakker-crypto/offline-devkit/releases/tag/v0.4.0)，下载包新增 `jsonl --gzip`，并保留 `dupes --verify-bytes`。
 
 ## 单文件运行包
 
@@ -82,6 +82,21 @@ This script checks already-downloaded assets without downloading or rebuilding t
 维护者可以在 Actions 手动运行 **Verify published download**，输入 `v0.3.0` 或后续标签。五组环境从 Release 下载相同的附件，不重新构建，并核对标签源码：Linux / Python 3.10、3.12、3.14，以及 Windows 和 macOS 15（Intel）/ Python 3.12。工作流只有仓库读取权限，不发布或覆盖附件；普通提交不会触发它。
 
 Maintainers can manually run **Verify published download** for a published tag. Its five environments download the same release assets, compare them with tagged source and run the verifier. The shared `--source-ref` path uses `git -c core.autocrlf=false -c core.eol=lf archive` to avoid inherited newline conversion in both checkout and archive. It requires Git and an existing local ref, uses a temporary source directory, performs no network access and does not change Git settings or the working tree. Source-ZIP users can use the directory-only path. The workflow has read-only repository permissions and never publishes or overwrites assets. Intel macOS results do not establish Apple Silicon coverage.
+
+## v0.4.0 下载附件复验记录 — 2026-10-17
+
+发布标签固定于提交 `61072bba671b1ed3a7f721158fbe2f7d97a240aa`。该提交的[五组源码 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/39078919907)与[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/39079008448)均成功。源码检查运行 79 项测试；Windows 的 FIFO 测试按系统能力跳过，其余通过。各环境还检查安装入口、便携包 gzip 输入，以及 Bash 或 PowerShell 的三种管道情况。
+
+[五组实际下载复验](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/39079074297)全部成功：Linux / Python 3.10、3.12、3.14，以及 Windows 和 macOS 15（Intel）/ Python 3.12。逐组检查了实际日志：
+
+- 从公开 Release 下载同一个 `offline-devkit.pyz`（10792 字节）和 `SHA256SUMS.txt`（85 字节）。
+- 运行包 SHA-256 为 `349b3fdda2c55f37e2c422935ef63718f2950f65076fe0f45309ad4f0e44fc64`，与校验文件一致。
+- 运行包中的六个模块、入口和许可证逐字节对应发布标签源码，再在源码目录外执行实际附件。
+- gzip 文件与二进制 stdin、解压后单行上限、CRC 和截断失败返回 2 均通过；同时保留精确 JSON 数字、BOM、重复文件及目录大小验证，样本文件未被工具改写。
+
+发布页的校验文档链接已修正为完整仓库地址，避免 Markdown 在 Release 页面将相对链接解释到错误路径。上述结果是功能正确性验证，不提供总解压量、CPU 或运行时间预算，也不包括 Apple Silicon 或性能规模结论。
+
+The published v0.4.0 archive passed actual download verification in all five environments: Linux / Python 3.10, 3.12 and 3.14; Windows and Intel macOS / Python 3.12. Each downloaded the same 10792-byte archive and 85-byte checksum file, verified SHA-256 and all tagged module/entry/license bytes, then ran isolated gzip file/stdin, CRC, truncation, decompressed-record-limit and existing CLI checks. Source CI ran 79 tests, with one unsupported FIFO case skipped on Windows. The installed CLI also passed a local success/truncation smoke check outside the source tree. These checks do not establish Apple Silicon support, performance bounds or a total decompression budget.
 
 ## v0.3.0 下载附件复验记录 — 2026-10-14
 
