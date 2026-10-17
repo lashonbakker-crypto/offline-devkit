@@ -11,7 +11,7 @@ A Python standard-library CLI for config files, JSONL datasets and logs, downloa
 | Command | Purpose | Detail |
 | --- | --- | --- |
 | `json` | Validate or format UTF-8 JSON | Preserves numeric tokens exactly; rejects duplicate keys and NaN/Infinity |
-| `jsonl` | Check JSONL / NDJSON records | Physical line numbers, bounded record reads, full counts with a bounded error sample |
+| `jsonl` | Check JSONL / NDJSON records | Physical line numbers, bounded reads; explicit `--gzip` supports compressed logs |
 | `dupes` | Find duplicate file content | Size/SHA-256 filtering, optional byte verification, hard-link handling |
 | `sizes` | Inspect logical file sizes | Top-level directory totals and largest files; JSON output available |
 
@@ -31,6 +31,14 @@ python offline-devkit.pyz sizes . --top 5
 ```
 
 Verify the downloaded file with the [SHA-256 instructions](docs/publishing.md).
+
+Starting with v0.4.0, check gzip JSONL / NDJSON directly:
+
+```bash
+python offline-devkit.pyz jsonl records.jsonl.gz --gzip --json
+```
+
+Decompression requires `--gzip`; filenames do not enable it automatically. Line numbers and record byte limits apply after decompression. Truncated streams, CRC and compression-format failures set `complete=false` and return 2 even if all previously checked records were valid. See the [bilingual gzip guide](docs/05-gzip-jsonl.md).
 
 Use `py -3` on Windows or `python3` on macOS / Linux when needed. Downloading requires network access; subsequent execution is offline.
 
@@ -74,7 +82,7 @@ JSON input is limited to 16 MiB, accepts one leading UTF-8 BOM (repeated BOMs ar
 
 Command output uses UTF-8 and LF newlines, including redirected output on Windows. Validation and formatting may support different nesting depths because Python decoder and recursion limits vary; exceeding those limits produces a controlled error.
 
-`jsonl` checks one JSON value per physical line. It accepts CRLF and an optional final newline, and rejects blank lines, BOMs, invalid UTF-8, duplicate keys, and non-standard numbers. By default a record is limited to 1 MiB excluding LF/CRLF, and only the first 20 errors are retained while every line is checked. Adjust these limits with `--max-line-bytes` and `--max-errors`. Invalid records or an incomplete read return 2. The JSON report includes `complete` and `errors_omitted` so a partial read or an abbreviated error sample is explicit. Empty input has zero records. This validates syntax and this tool's strict rules, rather than application schemas or a particular AI provider's dataset requirements. Plain, uncompressed input is supported.
+`jsonl` checks one JSON value per physical line. It accepts CRLF and an optional final newline, and rejects blank lines, BOMs, invalid UTF-8, duplicate keys, and non-standard numbers. By default a record is limited to 1 MiB excluding LF/CRLF, and only the first 20 errors are retained while every line is checked. Adjust these limits with `--max-line-bytes` and `--max-errors`. Invalid records or an incomplete read return 2. The JSON report includes `complete` and `errors_omitted` so a partial read or an abbreviated error sample is explicit. Empty input has zero records. This validates syntax and this tool's strict rules, rather than application schemas or a particular AI provider's dataset requirements. Input is plain by default; use `--gzip` for gzip files or binary stdin.
 
 File operations are read-only. Symlinks and Windows reparse points are skipped. Dependency/cache directories are excluded by default; use `--include-ignored` to include them. `--exclude` is a repeatable, case-sensitive glob matched against a basename or root-relative path.
 

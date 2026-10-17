@@ -1,5 +1,7 @@
-"""Validate JSON Lines incrementally, retaining only a bounded error sample."""
+"""Validate plain or gzip JSON Lines, retaining only a bounded error sample."""
 
+import gzip
+import zlib
 from typing import Any, BinaryIO, TextIO
 
 from .json_tools import JsonError, parse_json
@@ -77,7 +79,18 @@ def validate_jsonl(
             # Consume only this physical line in bounded pieces, then resume.
             while oversized and chunk and not chunk.endswith(b"\n"):
                 chunk = read_chunk(64 * 1024)
-    except (OSError, UnicodeError) as error:
+    except (OSError, EOFError, zlib.error, UnicodeError) as error:
         report["complete"] = False
         report["read_error"] = str(error)
     return report
+
+
+def validate_gzip_jsonl(stream: BinaryIO, **options) -> dict[str, Any]:
+    """Check decompressed records, including gzip trailers and all members.
+
+    Closing this wrapper does not close the caller's compressed stream.
+    Limits apply to decompressed records, not compressed bytes. Returned
+    counts cover records delivered before a read/decompression error only.
+    """
+    with gzip.GzipFile(fileobj=stream, mode="rb") as decompressed:
+        return validate_jsonl(decompressed, **options)

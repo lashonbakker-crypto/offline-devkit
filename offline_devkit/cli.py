@@ -9,7 +9,7 @@ from typing import Any, Sequence
 from . import __version__
 from .files import duplicate_report, scan_directory, size_report
 from .json_tools import JsonError, format_json, parse_json
-from .jsonl_tools import DEFAULT_MAX_ERRORS, DEFAULT_MAX_LINE_BYTES, validate_jsonl
+from .jsonl_tools import DEFAULT_MAX_ERRORS, DEFAULT_MAX_LINE_BYTES, validate_gzip_jsonl, validate_jsonl
 
 MAX_JSON_BYTES = 16 * 1024 * 1024
 
@@ -49,6 +49,7 @@ def _parser() -> argparse.ArgumentParser:
     lines = commands.add_parser("jsonl", help="validate JSON Lines with line-numbered errors and bounded reads")
     lines.add_argument("file", nargs="?", default="-", help="UTF-8 JSONL/NDJSON file; - means stdin")
     lines.add_argument("--json", action="store_true", dest="as_json", help="emit a machine-readable validation report")
+    lines.add_argument("--gzip", action="store_true", help="read gzip-compressed bytes from a file or stdin; no extension detection")
     lines.add_argument("--max-line-bytes", type=_positive, default=DEFAULT_MAX_LINE_BYTES, metavar="BYTES", help="record byte limit excluding LF/CRLF; default 1048576")
     lines.add_argument("--max-errors", type=_non_negative, default=DEFAULT_MAX_ERRORS, metavar="N", help="retain the first N errors while checking all lines; default 20")
 
@@ -156,11 +157,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "jsonl":
             options = {"max_line_bytes": args.max_line_bytes, "max_errors": args.max_errors}
+            validate = validate_gzip_jsonl if args.gzip else validate_jsonl
             if args.file == "-":
-                report = validate_jsonl(getattr(sys.stdin, "buffer", sys.stdin), **options)
+                report = validate(getattr(sys.stdin, "buffer", sys.stdin), **options)
             else:
                 with Path(args.file).expanduser().open("rb") as stream:
-                    report = validate_jsonl(stream, **options)
+                    report = validate(stream, **options)
             _print_jsonl_report(report, args.as_json)
             return 2 if report["invalid_lines"] or not report["complete"] else 0
         scan = scan_directory(args.directory, exclude=tuple(args.exclude), include_ignored=args.include_ignored)

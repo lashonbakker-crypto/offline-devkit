@@ -47,7 +47,7 @@ python -m offline_devkit jsonl examples/invalid-records.jsonl --json --max-error
 
 本工具另有严格策略：拒绝重复对象键以及 `NaN` / `Infinity`。重复键判断发生在转义解码后，所以 `"a"` 与 `"\u0061"` 是同一个键。数字解析使用原文令牌，检查 `1E-400` 或超大整数时不会先转成浮点数或有长度限制的整数。
 
-`jsonl` 不格式化记录，也不进行 schema、数据字段或任何 AI 平台的专用数据格式验证。只接受未压缩输入；压缩流支持是后续方向。
+`jsonl` 不格式化记录，也不进行 schema、数据字段或任何 AI 平台的专用数据格式验证。默认接受未压缩输入；v0.4.0 新增显式 `--gzip`，直接检查压缩文件或二进制标准输入，详见 [gzip 示例](05-gzip-jsonl.md)。
 
 ## 读到一半失败怎么办
 

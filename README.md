@@ -15,7 +15,7 @@ Local data checks, exact JSON numbers, and read-only file reports. **Python 3.10
 | 工具 | 解决什么问题 | 实现亮点 |
 | --- | --- | --- |
 | `json` | 配置文件难读、重复键、非标准数字 | 保留数字原文，拒绝重复键与 `NaN` / `Infinity` |
-| `jsonl` | 日志或数据集中某一行有问题 | 逐行检查、准确行号、单行大小限制、完整计数与有限错误样本 |
+| `jsonl` | 日志或数据集中某一行有问题 | 逐行检查、准确行号、单行大小限制；可用 `--gzip` 直接检查压缩日志 |
 | `dupes` | 下载目录、资料备份里有重复内容 | 大小与 SHA-256 筛选；可选逐字节复核；硬链接只算一次 |
 | `sizes` | 想知道哪个子目录、哪些文件最大 | 汇总一级目录，输出最大文件与机器可读报告 |
 
@@ -35,6 +35,14 @@ python offline-devkit.pyz sizes . --top 5
 ```
 
 下载后可按[校验说明](docs/publishing.md)检查 SHA-256。
+
+从 v0.4.0 起，可直接校验 gzip 压缩的 JSONL / NDJSON：
+
+```bash
+python offline-devkit.pyz jsonl records.jsonl.gz --gzip --json
+```
+
+显式添加 `--gzip`，文件后缀不触发自动解压。行号和大小限制按解压后的记录计算；压缩流截断、CRC 或格式错误会令 `complete=false` 并返回 2，即使已经读到的行都有效。详见[压缩日志示例与边界](docs/05-gzip-jsonl.md)。
 
 无需 pip 或构建工具。Windows 可用 `py -3`；macOS / Linux 可用 `python3`。下载需要网络，下载后的运行不需要网络。
 

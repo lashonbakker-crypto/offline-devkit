@@ -6,6 +6,7 @@ line endings. All CLI probes run outside the source directory.
 """
 
 import argparse
+import gzip
 import hashlib
 import io
 import json
@@ -110,6 +111,22 @@ def exercise_archive(archive: Path, source: Path, version: str) -> None:
         shutil.copytree(source / "examples" / "files", fixtures)
         for name in ("records.jsonl", "invalid-records.jsonl"):
             shutil.copyfile(source / "examples" / name, work / name)
+        gzip_supported = "--gzip" in run(["jsonl", "--help"]).decode("utf-8")
+        gzip_cases = []
+        if gzip_supported:
+            valid = gzip.compress((work / "records.jsonl").read_bytes(), mtime=0)
+            invalid = gzip.compress((work / "invalid-records.jsonl").read_bytes(), mtime=0)
+            bad_crc = bytearray(valid)
+            bad_crc[-8] ^= 1
+            for name, data, code, complete in (
+                ("valid.jsonl.gz", valid, 0, True),
+                ("invalid.jsonl.gz", invalid, 2, True),
+                ("truncated.jsonl.gz", valid[:-4], 2, False),
+                ("bad-crc.jsonl.gz", bytes(bad_crc), 2, False),
+            ):
+                path = work / name
+                path.write_bytes(data)
+                gzip_cases.append((path, data, code, complete))
         before = {path: path.read_bytes() for path in work.rglob("*") if path.is_file()}
         for verify in (False, True):
             arguments = ["dupes", str(fixtures), "--json"]
@@ -134,6 +151,22 @@ def exercise_archive(archive: Path, source: Path, version: str) -> None:
             )
             if invalid:
                 require([item["line"] for item in report["errors"]] == [2, 3], "JSONL error lines changed")
+        if gzip_supported:
+            for path, data, code, complete in gzip_cases:
+                for file_input in (True, False):
+                    arguments = ["jsonl", str(path) if file_input else "-", "--gzip", "--json"]
+                    report = json.loads(run(arguments, b"" if file_input else data, code))
+                    require(report["complete"] is complete, "gzip completeness changed")
+                    if not complete:
+                        require(bool(report["read_error"]), "missing gzip read error")
+                    elif code == 0:
+                        require(report["valid_lines"] == 3 and report["invalid_lines"] == 0, "gzip valid counts changed")
+                    else:
+                        require([item["line"] for item in report["errors"]] == [2, 3], "gzip physical line numbers changed")
+            compressed = gzip.compress(b'"' + b"x" * 200000 + b'"\n{}\n', mtime=0)
+            report = json.loads(run(["jsonl", "--gzip", "--json", "--max-line-bytes", "8", "--max-errors", "0"], compressed, 2))
+            require(report["complete"] and (report["lines_checked"], report["valid_lines"], report["invalid_lines"], report["errors_omitted"]) == (2, 1, 1, 1), "decompressed record limits changed")
+            print("Gzip JSONL OK: file/binary stdin, record limits, CRC and truncation exit 2", flush=True)
         after = {path: path.read_bytes() for path in work.rglob("*") if path.is_file()}
         require(before == after, "fixture files changed")
         print("JSONL OK: valid/invalid counts, physical line numbers and exit 2", flush=True)

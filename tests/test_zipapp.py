@@ -1,3 +1,4 @@
+import gzip
 import json
 import os
 import subprocess
@@ -39,6 +40,16 @@ class ZipappTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stderr, b"")
         self.assertEqual(json.loads(result.stdout)["errors"][0]["line"], 2)
+
+    def test_archive_checks_gzip_and_refuses_a_truncated_trailer(self):
+        compressed = gzip.compress(b"{}\nnull\n")
+        good = self.invoke("jsonl", "--gzip", "--json", data=compressed)
+        self.assertEqual(good.returncode, 0, good.stderr)
+        self.assertEqual(json.loads(good.stdout)["valid_lines"], 2)
+        bad = self.invoke("jsonl", "--gzip", "--json", data=compressed[:-1])
+        self.assertEqual(bad.returncode, 2, bad.stderr)
+        self.assertEqual(bad.stderr, b"")
+        self.assertFalse(json.loads(bad.stdout)["complete"])
 
     def test_archive_has_only_source_and_license(self):
         with zipfile.ZipFile(self.archive) as archive:

@@ -35,12 +35,13 @@ python -m offline_devkit json examples/config.json --compact | python -m offline
 ## JSON Lines / NDJSON
 
 ```bash
-python -m offline_devkit jsonl [FILE] [--json] [--max-line-bytes BYTES] [--max-errors N]
+python -m offline_devkit jsonl [FILE] [--gzip] [--json] [--max-line-bytes BYTES] [--max-errors N]
 ```
 
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
-| `FILE` | `-` | UTF-8 未压缩输入；`-` 从标准输入读取 |
+| `FILE` | `-` | 默认是 UTF-8 未压缩输入；`-` 从标准输入读取 |
+| `--gzip` | 关闭 | 显式读取 gzip 压缩文件或二进制标准输入；不按后缀自动判断 |
 | `--json` | 关闭 | 输出机器可读检查报告 |
 | `--max-line-bytes` | `1048576` | 每条记录的字节上限，不含结尾 LF 或 CRLF，必须为正整数 |
 | `--max-errors` | `20` | 保留前 N 条错误，N 可为 0；继续检查并统计后面的全部行 |
@@ -64,6 +65,8 @@ python -m offline_devkit jsonl examples/invalid-records.jsonl --json
 ```
 
 `--json` 时错误保存在报告中；普通文本模式把行错误写入标准错误。报告请保存到新的文件。
+
+gzip 使用同一报告结构。行号和 `--max-line-bytes` 均按解压后内容计算；多个 gzip member 连成同一个字节流，不额外添加换行。工具会读到压缩流末尾以检查 trailer；截断、CRC、长度或压缩格式错误设 `complete=false`、记录 `read_error` 并返回 2。此时计数只覆盖已交给检查器的记录，不代表全部内容，也不能独立确认已读前缀的完整性。空字节流和解压后为空的输入都按零条记录处理，与标准库读取行为一致。没有总解压量或执行时间上限；行上限和有限错误样本只限制相应缓冲与报告。示例及二进制管道方法见 [gzip 说明](05-gzip-jsonl.md)。
 
 标准输入的完整例子见 [Bash / PowerShell 管道教程](04-jsonl-pipelines.md)（[English](04-jsonl-pipelines.en.md)）。管道需要同时保存生成器和校验器的退出码；`complete=true` 只表示读到当前输入末尾，不能证明生成器输出了全部预期记录。
 

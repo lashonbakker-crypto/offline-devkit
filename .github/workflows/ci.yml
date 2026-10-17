@@ -65,3 +65,6 @@ jobs:
           python scripts/build_zipapp.py
           python dist/offline-devkit.pyz --version
           python dist/offline-devkit.pyz jsonl examples/records.jsonl --json
+          python -c "import gzip; from pathlib import Path; Path('dist/records.jsonl.gz').write_bytes(gzip.compress(Path('examples/records.jsonl').read_bytes(), mtime=0))"
+          offline-devkit jsonl dist/records.jsonl.gz --gzip --json
+          python dist/offline-devkit.pyz jsonl dist/records.jsonl.gz --gzip --json
