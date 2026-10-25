@@ -123,6 +123,27 @@ class FileTests(unittest.TestCase):
         self.assertEqual(report["groups"][0]["paths"], ["a", "b", "z"])
         self.assertEqual([file["path"] for file in size_report(scan_directory(self.root))["largest_files"]], ["a", "b", "z"])
 
+    def test_largest_file_cutoff_preserves_ties_and_full_totals(self):
+        for name, size in (("z-largest", 9), ("a", 4), ("b", 4), ("nested/c", 4), ("empty", 0)):
+            self.write(name, b"x" * size)
+        scan = scan_directory(self.root)
+        # Reporting must not rely on inventory order when a tie crosses top N.
+        scan.files.reverse()
+        expected = [
+            {"path": "z-largest", "size_bytes": 9},
+            {"path": "a", "size_bytes": 4},
+            {"path": "b", "size_bytes": 4},
+            {"path": "nested/c", "size_bytes": 4},
+            {"path": "empty", "size_bytes": 0},
+        ]
+        for top in (1, 3, 5, 99):
+            with self.subTest(top=top):
+                report = size_report(scan, top=top)
+                self.assertEqual(report["largest_files"], expected[:top])
+                self.assertEqual(report["total_bytes"], 21)
+                self.assertEqual(report["files_scanned"], 5)
+                self.assertEqual(sum(item["size_bytes"] for item in report["directories"]), 21)
+
     def symlink(self, target, link, *, directory=False):
         try:
             link.symlink_to(target, target_is_directory=directory)

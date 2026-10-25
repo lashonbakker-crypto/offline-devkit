@@ -2,6 +2,7 @@
 
 import fnmatch
 import hashlib
+import heapq
 import os
 import stat
 from collections import defaultdict
@@ -307,7 +308,9 @@ def size_report(scan: Scan, *, top: int = 10) -> dict[str, Any]:
         total_bytes=sum(record.size for record in scan.files),
         largest_files=[
             {"path": record.relative_path, "size_bytes": record.size}
-            for record in sorted(scan.files, key=lambda item: (-item.size, item.relative_path))[:top]
+            for record in heapq.nsmallest(
+                top, scan.files, key=lambda item: (-item.size, item.relative_path),
+            )
         ],
         directories=sorted(buckets.values(), key=lambda item: (-item["size_bytes"], item["path"])),
     )
