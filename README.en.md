@@ -103,6 +103,8 @@ Queued directories are checked before entry and after listing. An observed repla
 
 ## Development
 
+Current `main` reduces temporary allocations when selecting a small largest-file list. The [reproducible benchmark](docs/06-largest-files.md) measures report construction over already allocated synthetic metadata, excluding filesystem scans, input allocation, process RSS, and CLI startup. Run `python scripts/benchmark_size_report.py --counts 1000 10000 100000 --top 10 --repeats 5`; it verifies results against full sorting and emits timing samples, traced allocation peaks, and complete-report hashes. Published v0.4.0 assets do not include this optimization yet. Full directory inventory still uses memory proportional to the number of files, and large `--top` values are not guaranteed to be faster.
+
 ```bash
 python -m unittest discover -s tests -v
 ```

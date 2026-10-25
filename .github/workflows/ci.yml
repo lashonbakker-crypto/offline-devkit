@@ -45,6 +45,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run behavior tests
         run: python -m unittest discover -s tests -v
+      - name: Verify synthetic size-report benchmark
+        run: python scripts/benchmark_size_report.py --counts 1000 --top 10 --repeats 1
       - name: Check documented Bash pipelines
         if: runner.os != 'Windows'
         run: python scripts/verify_jsonl_pipelines.py --shell bash
