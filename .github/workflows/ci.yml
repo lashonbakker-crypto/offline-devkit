@@ -47,6 +47,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Check README first-run demo
         run: python scripts/try_jsonl.py
+      - name: Verify copied consumer CI recipe
+        run: python scripts/verify_ci_recipe.py
       - name: Verify synthetic size-report benchmark
         run: python scripts/benchmark_size_report.py --counts 1000 --top 10 --repeats 1
       - name: Check documented Bash pipelines
