@@ -45,6 +45,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run behavior tests
         run: python -m unittest discover -s tests -v
+      - name: Check README first-run demo
+        run: python scripts/try_jsonl.py
       - name: Verify synthetic size-report benchmark
         run: python scripts/benchmark_size_report.py --counts 1000 --top 10 --repeats 1
       - name: Check documented Bash pipelines
@@ -70,3 +72,4 @@ jobs:
           python -c "import gzip; from pathlib import Path; Path('dist/records.jsonl.gz').write_bytes(gzip.compress(Path('examples/records.jsonl').read_bytes(), mtime=0))"
           offline-devkit jsonl dist/records.jsonl.gz --gzip --json
           python dist/offline-devkit.pyz jsonl dist/records.jsonl.gz --gzip --json
+          python scripts/try_jsonl.py --archive dist/offline-devkit.pyz

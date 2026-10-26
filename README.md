@@ -4,18 +4,20 @@
 
 [![Tests](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml)
 
-**本地检查 JSON / JSONL，保留数字原文，找出重复文件和大文件。**
+**导入数据前，先找出 JSONL 坏行、重复键和损坏的 gzip 文件。数据留在本机。**
 
-Local data checks, exact JSON numbers, and read-only file reports. **Python 3.10+ · Zero runtime dependencies · MIT.**
+Check JSONL records and gzip integrity before import. **Python 3.10+ · Zero runtime dependencies · MIT.**
 
 [English](README.en.md) · [单文件下载](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) · [快速开始](#一分钟上手) · [完整命令](docs/usage.md) · [贡献指南](CONTRIBUTING.md)
 
-一个用 Python 标准库实现的轻量命令行工具箱。适合检查配置文件、日志、JSONL 数据集，以及整理下载目录和备份；处理过程在本机完成。可直接使用，也可阅读源码学习命令行、文件系统和自动测试。
+给需要导入 JSONL / NDJSON 数据集、处理压缩日志的人：一条命令检查严格 JSON 规则、定位物理行号，并区分“记录无效”和“输入没读完整”。不需要上传数据或安装第三方运行时依赖。它也能保留 JSON 数字原文，以及只读报告重复文件和目录大小。
+
+检查范围是语法、重复键和读取完整性，不验证业务 schema，也不保证数据符合某个平台的导入要求。
 
 | 工具 | 解决什么问题 | 实现亮点 |
 | --- | --- | --- |
-| `json` | 配置文件难读、重复键、非标准数字 | 保留数字原文，拒绝重复键与 `NaN` / `Infinity` |
 | `jsonl` | 日志或数据集中某一行有问题 | 逐行检查、准确行号、单行大小限制；可用 `--gzip` 直接检查压缩日志 |
+| `json` | 配置文件难读、重复键、非标准数字 | 保留数字原文，拒绝重复键与 `NaN` / `Infinity` |
 | `dupes` | 下载目录、资料备份里有重复内容 | 大小与 SHA-256 筛选；可选逐字节复核；硬链接只算一次 |
 | `sizes` | 想知道哪个子目录、哪些文件最大 | 汇总一级目录，输出最大文件与机器可读报告 |
 
@@ -27,41 +29,46 @@ Local data checks, exact JSON numbers, and read-only file reports. **Python 3.10
 
 ## 一分钟上手
 
-**方式一：下载一个文件。** 在 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 下载 `offline-devkit.pyz`，有 Python 3.10+ 就能运行，适合在多台电脑间携带：
+**先体验三个真实结果。** 有 Git 和 Python 3.10+，复制这三条命令即可，不需要 pip，也不需要准备自己的数据：
 
 ```bash
-python offline-devkit.pyz --help
-python offline-devkit.pyz sizes . --top 5
+git clone https://github.com/lashonbakker-crypto/offline-devkit.git
+cd offline-devkit
+python scripts/try_jsonl.py
 ```
 
-下载后可按[校验说明](docs/publishing.md)检查 SHA-256。
+| 演示情况 | 检查器退出码 | 应看到的结果 |
+| --- | --- | --- |
+| 完整 gzip，内含三条有效记录 | `0` | `valid=3; invalid=0; complete=true` |
+| 第二行有重复键（`id` 与转义后相同的键） | `2` | `valid=2; invalid=1; complete=true`，指出第 2 行 |
+| gzip 末尾被截断 | `2` | `complete=false`；计数只代表已经检查到的部分 |
 
-从 v0.4.0 起，可直接校验 gzip 压缩的 JSONL / NDJSON：
+演示会调用实际 CLI，在临时目录生成并清理合成样本，核对样本哈希和结果，不读取你的资料，也不生成解压文件。最后显示 `Demo passed`，脚本自身返回 0，表示它确认两个坏样本都**按预期被拒绝**。截断时的部分计数可能随 Python 版本不同，以 `complete=false` 为准。
+
+克隆需要网络，之后的演示在本机运行。没有 Git 时可下载 [main 分支源码 ZIP](https://github.com/lashonbakker-crypto/offline-devkit/archive/refs/heads/main.zip)，解压进入目录后运行最后一条命令；旧版本源码不包含新演示脚本。Windows 可用 `py -3` 替换 `python`；macOS / Linux 可用 `python3`。
+
+**检查你自己的文件。** 从源码目录运行，路径替换成已存在的文件：
+
+```bash
+python -m offline_devkit jsonl records.jsonl --json
+python -m offline_devkit jsonl records.jsonl.gz --gzip --json
+```
+
+**只带一个文件。** 从 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 下载 `offline-devkit.pyz`，按[校验说明](docs/publishing.md)核对 SHA-256，再运行：
 
 ```bash
 python offline-devkit.pyz jsonl records.jsonl.gz --gzip --json
 ```
 
-显式添加 `--gzip`，文件后缀不触发自动解压。行号和大小限制按解压后的记录计算；压缩流截断、CRC 或格式错误会令 `complete=false` 并返回 2，即使已经读到的行都有效。详见[压缩日志示例与边界](docs/05-gzip-jsonl.md)。
+下载包需要 Python 3.10+，无需 pip 或构建工具；gzip 支持从 v0.4.0 起可用。显式加 `--gzip`，文件后缀不自动触发解压。**已经读到的行全都有效，仍可能因为压缩文件被截断而失败。** 行号与单行限制按解压后的内容计算。详见[压缩日志示例与边界](docs/05-gzip-jsonl.md)。
 
-无需 pip 或构建工具。Windows 可用 `py -3`；macOS / Linux 可用 `python3`。下载需要网络，下载后的运行不需要网络。
-
-**方式二：从源码试用附带示例。**
-
-克隆仓库后进入项目目录。以下方式直接运行源码，无需安装包，也不需要联网：
+其余工具也能从源码直接使用：
 
 ```bash
-git clone https://github.com/lashonbakker-crypto/offline-devkit.git
-cd offline-devkit
 python -m offline_devkit json examples/config.json
-python -m offline_devkit jsonl examples/records.jsonl
 python -m offline_devkit dupes examples/files
 python -m offline_devkit sizes examples/files --top 3
 ```
-
-克隆需要网络，下载源码 ZIP 后解压也可以；进入目录后的工具命令不需要网络。
-
-Windows 如果没有 `python` 命令，请用 `py -3`；macOS / Linux 可以用 `python3`。
 
 附带的三个文本文件中，`note.txt` 和 `copies/note-copy.txt` 内容相同，`unique.txt` 内容不同。你应看到一组重复文件。检查配置示例时，长小数和 `1E-400` 会保持原样。
 
