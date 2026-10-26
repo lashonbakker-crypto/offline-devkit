@@ -1,0 +1,29 @@
+# Copy this file to .github/workflows/check-jsonl.yml in your repository.
+# Copy the companion check_jsonl.py to .github/scripts/check_jsonl.py.
+name: Check JSONL data
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - name: Check one dataset
+        # Replace this explicit path with your file. Remove --gzip for plain JSONL.
+        # A missing file, bad record, or incomplete gzip makes this step fail.
+        run: python .github/scripts/check_jsonl.py data/records.jsonl.gz --gzip
