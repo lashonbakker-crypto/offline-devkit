@@ -2,16 +2,18 @@
 
 [![Tests](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/lashonbakker-crypto/offline-devkit/actions/workflows/ci.yml)
 
-**Local JSON / JSONL checks. Exact JSON numbers. Read-only file reports.**
+**Catch invalid JSONL records, duplicate keys, and broken gzip streams before import. Data stays local.**
 
 [中文](README.md) · [Download](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) · [Command reference](docs/usage.md) · [Contributing](CONTRIBUTING.md)
 
-A Python standard-library CLI for config files, JSONL datasets and logs, downloads, and backups. **Python 3.10+ · Zero third-party runtime dependencies · MIT.** All processing happens locally and the tools make no network requests.
+A CLI for developers importing JSONL / NDJSON datasets or processing compressed logs. Locate invalid records by physical line and distinguish bad records from incomplete input. **Python 3.10+ · Zero third-party runtime dependencies · MIT.** It also preserves JSON number spellings and provides read-only duplicate-file and size reports. All processing is local.
+
+Checks cover syntax, duplicate keys, and read integrity; they do not validate application schemas or guarantee acceptance by a particular import service.
 
 | Command | Purpose | Detail |
 | --- | --- | --- |
-| `json` | Validate or format UTF-8 JSON | Preserves numeric tokens exactly; rejects duplicate keys and NaN/Infinity |
 | `jsonl` | Check JSONL / NDJSON records | Physical line numbers, bounded reads; explicit `--gzip` supports compressed logs |
+| `json` | Validate or format UTF-8 JSON | Preserves numeric tokens exactly; rejects duplicate keys and NaN/Infinity |
 | `dupes` | Find duplicate file content | Size/SHA-256 filtering, optional byte verification, hard-link handling |
 | `sizes` | Inspect logical file sizes | Top-level directory totals and largest files; JSON output available |
 
@@ -23,39 +25,48 @@ The demo uses the included fixtures and actual CLI output. [Reproduce it](docs/d
 
 ## Quick start
 
-**Single-file option:** download `offline-devkit.pyz` from [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest). Python 3.10+ is the only requirement; pip and build tools are unnecessary:
+**See three real outcomes first.** With Git and Python 3.10+, run these three commands. No pip or personal data is needed:
 
 ```bash
-python offline-devkit.pyz --help
-python offline-devkit.pyz sizes . --top 5
+git clone https://github.com/lashonbakker-crypto/offline-devkit.git
+cd offline-devkit
+python scripts/try_jsonl.py
 ```
 
-Verify the downloaded file with the [SHA-256 instructions](docs/publishing.md).
+| Case | Validator exit | Expected result |
+| --- | --- | --- |
+| Complete gzip with three valid records | `0` | `valid=3; invalid=0; complete=true` |
+| Duplicate key on line 2, including an escaped spelling | `2` | `valid=2; invalid=1; complete=true`; error points to line 2 |
+| Truncated gzip trailer | `2` | `complete=false`; any counts are partial |
 
-Starting with v0.4.0, check gzip JSONL / NDJSON directly:
+The demo invokes the actual CLI, creates and cleans synthetic samples in a temporary directory, and checks results and input hashes. It reads no personal files and creates no extracted files. `Demo passed` and the demo's exit 0 mean both bad inputs were correctly rejected with exit 2. Partial counters on truncation can vary by Python version; check `complete=false`.
+
+Cloning requires network access; the subsequent demo runs locally. Without Git, extract the [main branch source ZIP](https://github.com/lashonbakker-crypto/offline-devkit/archive/refs/heads/main.zip) and run the last command from its directory; older source releases do not contain the new demo script. Use `py -3` on Windows or `python3` on macOS / Linux if needed.
+
+**Check your own files.** From the source directory, replace the paths with existing files:
+
+```bash
+python -m offline_devkit jsonl records.jsonl --json
+python -m offline_devkit jsonl records.jsonl.gz --gzip --json
+```
+
+**Carry one file.** Download `offline-devkit.pyz` from [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest), verify it using the [SHA-256 instructions](docs/publishing.md), and run:
 
 ```bash
 python offline-devkit.pyz jsonl records.jsonl.gz --gzip --json
 ```
 
-Decompression requires `--gzip`; filenames do not enable it automatically. Line numbers and record byte limits apply after decompression. Truncated streams, CRC and compression-format failures set `complete=false` and return 2 even if all previously checked records were valid. See the [bilingual gzip guide](docs/05-gzip-jsonl.md).
+Python 3.10+ is required, with no pip or build tools. Gzip support is available from v0.4.0. It requires explicit `--gzip`; filenames do not enable decompression. **Previously read records can all be valid while a truncated compressed stream still fails.** Line numbers and record limits apply after decompression. See the [bilingual gzip guide](docs/05-gzip-jsonl.md).
 
-Use `py -3` on Windows or `python3` on macOS / Linux when needed. Downloading requires network access; subsequent execution is offline.
-
-**Source option:** clone or extract the repository, then try the included fixtures:
+Other tools can run directly from source too:
 
 ```bash
-git clone https://github.com/lashonbakker-crypto/offline-devkit.git
-cd offline-devkit
 python -m offline_devkit json examples/config.json
-python -m offline_devkit jsonl examples/records.jsonl
 python -m offline_devkit dupes examples/files
 python -m offline_devkit sizes examples/files --top 3
 ```
 
-Cloning needs network access; extracting a source ZIP works too. The tool commands above do not need network access.
-
-Use `py -3` on Windows or `python3` on Unix when needed. The sample files contain one duplicate group.
+The included files contain one duplicate group. Tool commands run offline.
 
 Optional installation in an activated virtual environment:
 

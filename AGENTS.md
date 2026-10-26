@@ -13,4 +13,6 @@ This repository is a small, read-only Python CLI and educational source project.
 - Update command documentation and CHANGELOG when public behavior changes.
 - Never claim cross-platform CI passed until actual workflow results have been inspected.
 - Main README is Chinese; keep README.en.md aligned for user-facing behavior.
+- Consult ROADMAP.md for the current audience and workflow priorities. Prefer verified first-run improvements and demonstrated user needs over unrelated feature expansion; commit/test counts are not usage evidence.
+- Use subagents when independent implementation or verification can run in parallel; assign distinct scopes, keep one integration owner, and avoid concurrent edits to the same files.
 - Do not commit caches, generated builds, local reports, credentials, or personal data.
