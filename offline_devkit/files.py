@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .paths import expand_user
+
 DEFAULT_EXCLUDED_DIRS = frozenset(
     {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"}
 )
@@ -66,7 +68,7 @@ def scan_directory(
     include_ignored: bool = False,
 ) -> Scan:
     """Inspect regular files. Do not traverse symlinks or Windows reparse points."""
-    root = Path(root).expanduser().absolute()
+    root = expand_user(root).absolute()
     info = root.lstat()
     if _linked(info) or not stat.S_ISDIR(info.st_mode):
         raise ValueError("root must be a real directory, not a symlink or file")

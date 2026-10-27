@@ -3,13 +3,13 @@
 import argparse
 import json
 import sys
-from pathlib import Path
 from typing import Any, Sequence
 
 from . import __version__
 from .files import duplicate_report, scan_directory, size_report
 from .json_tools import JsonError, format_json, parse_json
 from .jsonl_tools import DEFAULT_MAX_ERRORS, DEFAULT_MAX_LINE_BYTES, validate_gzip_jsonl, validate_jsonl
+from .paths import expand_user
 
 MAX_JSON_BYTES = 16 * 1024 * 1024
 
@@ -78,7 +78,7 @@ def _read_json(file: str) -> str:
         if isinstance(data, str):
             data = data.encode("utf-8")
     else:
-        with Path(file).expanduser().open("rb") as stream:
+        with expand_user(file).open("rb") as stream:
             data = stream.read(MAX_JSON_BYTES + 1)
     if len(data) > MAX_JSON_BYTES:
         raise ValueError("JSON input exceeds the 16 MiB limit")
@@ -161,7 +161,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.file == "-":
                 report = validate(getattr(sys.stdin, "buffer", sys.stdin), **options)
             else:
-                with Path(args.file).expanduser().open("rb") as stream:
+                with expand_user(args.file).open("rb") as stream:
                     report = validate(stream, **options)
             _print_jsonl_report(report, args.as_json)
             return 2 if report["invalid_lines"] or not report["complete"] else 0

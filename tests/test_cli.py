@@ -160,6 +160,27 @@ class CliTests(unittest.TestCase):
         self.assertEqual(output, "")
         self.assertIn("error:", errors)
 
+    def test_unresolved_home_path_has_exit_two_before_filesystem_access(self):
+        source = "~unavailable-user/data"
+        for command in ("json", "jsonl", "dupes", "sizes"):
+            with self.subTest(command=command):
+                options = ["--check"] if command == "json" else ["--json"]
+                with (
+                    patch.object(Path, "expanduser", side_effect=RuntimeError("home lookup failed")),
+                    patch.object(Path, "open") as open_file,
+                    patch.object(Path, "lstat") as lstat,
+                    patch("offline_devkit.files.os.scandir") as scandir,
+                ):
+                    status, output, errors = self.invoke(command, source, *options)
+                self.assertEqual((status, output), (2, ""))
+                self.assertIn("cannot expand user path", errors)
+                self.assertIn(repr(str(Path(source))), errors)
+                self.assertIn("home lookup failed", errors)
+                self.assertNotIn("Traceback", errors)
+                open_file.assert_not_called()
+                lstat.assert_not_called()
+                scandir.assert_not_called()
+
     def test_partial_scan_is_not_reported_as_success(self):
         scan = Scan(root=self.root, errors=["permission denied"])
         with patch("offline_devkit.cli.scan_directory", return_value=scan):

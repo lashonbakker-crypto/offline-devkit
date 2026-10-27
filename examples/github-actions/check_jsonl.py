@@ -47,10 +47,19 @@ def main() -> int:
     parser.add_argument("--archive", type=Path, help="existing v0.4.0 pyz; the fixed SHA-256 still applies")
     args = parser.parse_args()
     try:
-        source = args.file.expanduser().resolve(strict=True)
+        try:
+            source = args.file.expanduser().resolve(strict=True)
+        except RuntimeError as error:
+            raise ValueError(f"cannot prepare input path: {error}") from error
         if not source.is_file():
             raise ValueError("input must be an existing regular file")
-        data = archive_bytes(args.archive.expanduser() if args.archive is not None else None)
+        existing = None
+        if args.archive is not None:
+            try:
+                existing = args.archive.expanduser()
+            except RuntimeError as error:
+                raise ValueError(f"cannot prepare --archive path: {error}") from error
+        data = archive_bytes(existing)
         with tempfile.TemporaryDirectory(prefix="offline-devkit-ci-") as temporary:
             work = Path(temporary)
             archive = work / "offline-devkit.pyz"

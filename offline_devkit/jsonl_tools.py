@@ -1,6 +1,7 @@
 """Validate plain or gzip JSON Lines, retaining only a bounded error sample."""
 
 import gzip
+import sys
 import zlib
 from typing import Any, BinaryIO, TextIO
 
@@ -8,6 +9,8 @@ from .json_tools import JsonError, parse_json
 
 DEFAULT_MAX_LINE_BYTES = 1024 * 1024
 DEFAULT_MAX_ERRORS = 20
+# readline's size must also fit the CRLF and oversized-line lookahead.
+MAX_LINE_BYTES = sys.maxsize - 3
 
 
 def validate_jsonl(
@@ -21,8 +24,10 @@ def validate_jsonl(
     Blank lines and BOMs are errors. A final newline is optional. A read error
     preserves the partial counts and marks the report incomplete.
     """
-    if max_line_bytes < 1 or max_errors < 0:
-        raise ValueError("max_line_bytes must be positive; max_errors must be non-negative")
+    if not 1 <= max_line_bytes <= MAX_LINE_BYTES:
+        raise ValueError(f"max_line_bytes must be between 1 and {MAX_LINE_BYTES}")
+    if max_errors < 0:
+        raise ValueError("max_errors must be non-negative")
     report: dict[str, Any] = {
         "lines_checked": 0,
         "valid_lines": 0,

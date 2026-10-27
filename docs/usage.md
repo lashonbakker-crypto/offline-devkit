@@ -4,6 +4,8 @@
 
 命令输出统一为 UTF-8、LF 换行，Windows 重定向时也保持相同字节格式。格式化后的 JSON 以一个 LF 结尾。
 
+输入路径支持 `~` / `~用户名` 的家目录展开；无法确定家目录时，四个命令都报告可读错误并返回 2，不输出成功报告，也不会把路径当成当前目录。此错误状态修复在当前源码中，已发布 v0.4.0 尚未包含。
+
 ## JSON
 
 ```bash
@@ -43,7 +45,7 @@ python -m offline_devkit jsonl [FILE] [--gzip] [--json] [--max-line-bytes BYTES]
 | `FILE` | `-` | 默认是 UTF-8 未压缩输入；`-` 从标准输入读取 |
 | `--gzip` | 关闭 | 显式读取 gzip 压缩文件或二进制标准输入；不按后缀自动判断 |
 | `--json` | 关闭 | 输出机器可读检查报告 |
-| `--max-line-bytes` | `1048576` | 每条记录的字节上限，不含结尾 LF 或 CRLF，必须为正整数 |
+| `--max-line-bytes` | `1048576` | 每条记录的字节上限，不含结尾 LF 或 CRLF，范围为 `1` 到当前 Python 的 `sys.maxsize - 3` |
 | `--max-errors` | `20` | 保留前 N 条错误，N 可为 0；继续检查并统计后面的全部行 |
 
 每个物理行是一份 JSON，顶层标量允许。空白行、BOM、无效 UTF-8、重复键、`NaN` / `Infinity`、超长行均是错误。CRLF 可用，最后一条记录可以不带换行；空文件表示 0 条记录。区别于 `json` 命令，JSON Lines 开头也不接受 BOM。只检查语法与本工具的严格规则，不验证业务 schema。
@@ -58,6 +60,8 @@ python -m offline_devkit jsonl [FILE] [--gzip] [--json] [--max-line-bytes BYTES]
 | `read_error` | 中途读取失败的说明；完整读取时为 `null` |
 
 超长记录会以有限大小的块排空，然后继续检查下一行，整条超长行只计一次。内存随单行上限和保留的错误样本增长，不随整个文件长度增长。记录嵌套仍受 Python 解码器限制。读到无效记录或 `complete=false` 时返回 2；完整且全部有效返回 0。文件根本打不开或参数无效时，标准错误报告错误并返回 2，不生成 JSON 报告。`--max-errors 0` 仍不会将有错误的文件报告为成功。
+
+当前源码在读取记录前检查行上限范围，过大的正整数也返回 2，错误中列出当前运行时的可接受范围。上界为读取函数预留 CRLF 和一个超长判断字节，不是建议使用的缓冲大小；默认仍为 1 MiB。普通文件、标准输入与 gzip 共用此规则。此上界检查尚未包含在已发布 v0.4.0 中。
 
 ```bash
 python -m offline_devkit jsonl examples/records.jsonl

@@ -34,9 +34,11 @@ run: python .github/scripts/check_jsonl.py data/records.jsonl
 | 完整且有效的 JSONL / gzip | 0 | JSON 报告 `complete=true`，job 成功 |
 | 重复键或其他无效记录 | 2 | 报告错误行号，job 失败 |
 | gzip 被截断或读取失败 | 2 | `complete=false`，job 失败；计数是部分结果 |
-| 文件缺失、附件哈希不符或附件过大 | 2 | 错误写到 stderr，job 失败；不输出数据检查报告 |
+| 文件缺失、路径无法展开 / 解析、附件哈希不符或附件过大 | 2 | 错误写到 stderr，job 失败；不输出数据检查报告 |
 
 helper 直接传播隔离执行的校验器状态和 JSON 输出。不要追加 `|| true` 或设置 `continue-on-error: true`，否则会改变这条失败规则。
+
+最新源码中的 helper 会在准备工具前拒绝无法展开的家目录路径，以及输入路径解析中的循环链接，返回 2 和简短错误。已有配方请更新复制的 `check_jsonl.py`；仅重新下载相同的 v0.4.0 附件不会更新这个独立脚本。路径错误回归还会确认没有下载或执行归档。
 
 **job 失败与禁止合并是两件事。** 如需把检查作为合并条件，应另在仓库规则中将该检查设为必需状态；本示例不修改仓库规则。手动触发要求工作流先存在于默认分支，首次 fork PR 也可能需要维护者批准运行；等待批准不表示数据验证失败。依据见 [GitHub 触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)及[路径过滤说明](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)。
 
@@ -85,5 +87,7 @@ Copy the two recipe files to `.github/workflows/check-jsonl.yml` and `.github/sc
 The workflow uses ordinary pull requests, pushes, and manual dispatch, with read-only contents permission and checkout credential persistence disabled. It requires Python 3.12, no pip, and no additional secrets. It intentionally has no path filter. Dispatch requires the workflow on the default branch; fork runs may need approval. A failed job does not automatically prevent merging: configure a required status check separately if desired.
 
 The helper downloads the fixed v0.4.0 archive and checks its hardcoded SHA-256 before executing a private temporary copy with `python -I`. Preparation uses network access; `--archive PATH` uses existing bytes without network and still enforces the same checksum. Inputs are unchanged, stdout remains the validator's JSON, and its status propagates: 0 for complete valid input; 2 for invalid records, incomplete gzip, or preparation/input failures. Do not mask the exit with `|| true` or `continue-on-error`.
+
+The latest source helper rejects unresolved home paths and input-path symlink loops before preparing the tool, with a short error and exit 2. Update your copied `check_jsonl.py` to get this fix; downloading the same v0.4.0 archive does not update the separate helper. Regression checks confirm that path failures neither download nor execute the archive.
 
 Run `python scripts/verify_ci_recipe.py` to exercise seven copied-recipe cases, or append `--archive PATH` for an offline run. The success message means expected bad cases were rejected. Our CI executes this verifier on five environments; it does not install workflows in another repository. Limits: a 1 MiB tool download, 30-second network blocking timeout, and a 5-minute job timeout. These are not CLI decompression/CPU budgets or a publisher signature. Schema requirements and minimum record counts remain application policy; empty JSONL is accepted as zero records.
