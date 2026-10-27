@@ -75,6 +75,39 @@ def verify_assets(download: Path, source: Path) -> Path:
     return archive.resolve()
 
 
+def exercise_input_errors(archive: Path, work: Path, version: str, gzip_supported: bool) -> None:
+    """Check the v0.4.1 input-error contract without imposing it on old releases."""
+    matched = re.fullmatch(r"([0-9]+)\.([0-9]+)\.([0-9]+)", version)
+    require(matched is not None, "expected a numeric major.minor.patch version")
+    if tuple(map(int, matched.groups())) < (0, 4, 1):
+        return
+    # A fresh temporary name avoids depending on a real account or home path.
+    # Windows may expand ~user to a missing profile rather than reject lookup;
+    # either case must remain a controlled input error.
+    missing_home = f"~offline_devkit_missing_home_{work.name}/records.jsonl"
+    cases = [([command, missing_home, "--check" if command == "json" else "--json"], b"")
+             for command in ("json", "jsonl", "dupes", "sizes")]
+    inputs = [(work / "records.jsonl", [])]
+    if gzip_supported:
+        inputs.append((work / "valid.jsonl.gz", ["--gzip"]))
+    for path, options in inputs:
+        for from_file in (True, False):
+            cases.append((
+                ["jsonl", str(path) if from_file else "-", *options,
+                 "--json", "--max-line-bytes", str(sys.maxsize)],
+                b"" if from_file else path.read_bytes(),
+            ))
+    for arguments, data in cases:
+        result = subprocess.run(
+            [sys.executable, "-I", str(archive), *arguments],
+            cwd=work, input=data, capture_output=True, timeout=15,
+        )
+        require(result.returncode == 2, f"unexpected input-error exit {result.returncode}: {arguments}")
+        require(not result.stdout, f"input error produced a success report: {arguments}")
+        require(bool(result.stderr) and b"Traceback" not in result.stderr, f"missing or uncontrolled input error: {arguments}")
+    print("Input errors OK: unresolved home paths and oversized JSONL limits return 2 without reports or tracebacks", flush=True)
+
+
 def exercise_archive(archive: Path, source: Path, version: str) -> None:
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
@@ -167,6 +200,7 @@ def exercise_archive(archive: Path, source: Path, version: str) -> None:
             report = json.loads(run(["jsonl", "--gzip", "--json", "--max-line-bytes", "8", "--max-errors", "0"], compressed, 2))
             require(report["complete"] and (report["lines_checked"], report["valid_lines"], report["invalid_lines"], report["errors_omitted"]) == (2, 1, 1, 1), "decompressed record limits changed")
             print("Gzip JSONL OK: file/binary stdin, record limits, CRC and truncation exit 2", flush=True)
+        exercise_input_errors(archive, work, version, gzip_supported)
         after = {path: path.read_bytes() for path in work.rglob("*") if path.is_file()}
         require(before == after, "fixture files changed")
         print("JSONL OK: valid/invalid counts, physical line numbers and exit 2", flush=True)

@@ -1,6 +1,6 @@
 # 发布与下载包
 
-仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.4.0；[v0.4.0 已实际发布](https://github.com/lashonbakker-crypto/offline-devkit/releases/tag/v0.4.0)，下载包新增 `jsonl --gzip`，并保留 `dupes --verify-bytes`。
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.4.1，包含输入错误修复与最大文件列表选择优化；实际发布版本与下载附件见 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest)。源码 CI、发布任务和实际下载复验应分别检查，不能用本地构建代替下载结果。
 
 ## 单文件运行包
 
@@ -48,24 +48,24 @@ python offline-devkit.pyz --version
 python offline-devkit.pyz json --compact
 ```
 
-第一条在 v0.3.0 应输出 `offline-devkit 0.3.0`。第二条等待标准输入：输入 `{"number":1E-400}` 后结束输入（macOS / Linux：新行按 Ctrl+D；Windows：新行按 Ctrl+Z 后回车）。应输出 `{"number":1E-400}`，保留数字原文。单文件包仍需要 Python 3.10+；它不是无需 Python 的原生可执行文件。
+第一条在 v0.4.1 应输出 `offline-devkit 0.4.1`。第二条等待标准输入：输入 `{"number":1E-400}` 后结束输入（macOS / Linux：新行按 Ctrl+D；Windows：新行按 Ctrl+Z 后回车）。应输出 `{"number":1E-400}`，保留数字原文。单文件包仍需要 Python 3.10+；它不是无需 Python 的原生可执行文件。
 
-For v0.3.0, the first command prints `offline-devkit 0.3.0`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
+For v0.4.1, the first command prints `offline-devkit 0.4.1`. The second reads stdin: enter `{"number":1E-400}` and signal EOF (Ctrl+D on a new line on macOS / Linux; Ctrl+Z then Enter on Windows). It should print `{"number":1E-400}` with the numeric token unchanged. The archive still requires Python 3.10+.
 
 ## 可重复的附件复验 / Repeatable asset verification
 
-在包含本仓库源码的终端中，用新的验证脚本检查已下载的两个文件。以 v0.3.0 为例，假设附件放在仓库外的 `../release-download/`：
+在包含本仓库源码的终端中，用验证脚本检查已下载的两个文件。以匹配的 v0.4.1 附件为例，假设放在仓库外的 `../release-download/`：
 
 ```bash
-python scripts/verify_release_download.py ../release-download --expected-version 0.3.0
+python scripts/verify_release_download.py ../release-download --expected-version 0.4.1
 ```
 
-默认用当前源码核对归档内的六个模块、入口和许可证。要检查其他发布版本，使用该标签的源码目录，并追加 `--source-directory ../released-source`；不要用不同版本的源码验证附件。
+默认用当前源码核对归档内的全部模块、入口和许可证（v0.4.1 为七个模块）。要检查其他发布版本，使用该标签的源码目录，并追加 `--source-directory ../released-source`；不要用不同版本的源码验证附件。
 
 源码必须保留 Git 中的原始字节。当前源码将 `LICENSE` 固定为 LF；旧标签在 Windows 上可能因 `core.autocrlf` 被检出为 CRLF，普通 `git archive` 也会受该配置影响。若使用 Git 克隆的仓库，推荐指定标签，让脚本按一次性 LF 设置导出到临时目录：
 
 ```bash
-python scripts/verify_release_download.py ../release-download --source-ref v0.3.0 --expected-version 0.3.0
+python scripts/verify_release_download.py ../release-download --source-ref v0.4.1 --expected-version 0.4.1
 ```
 
 `--source-ref` 需要已安装 Git 和本地已有该标签；不会联网，不修改全局 Git 配置或工作树。源码 ZIP 用户可以直接用前面的目录方式。不要仅为通过检查而重新生成下载包或修改校验文件。
@@ -76,6 +76,7 @@ python scripts/verify_release_download.py ../release-download --source-ref v0.3.
 - 检查 0–3 个 BOM、文件 / 标准输入、校验 / 格式化共 16 种组合。
 - 运行默认哈希和逐字节复核两种重复报告，确认 `--fail-if-found` 返回 1，以及目录大小结果。
 - 检查有效 JSONL 的 3 行、无效示例的 4 行和第 2 / 3 行错误，确认输入错误返回 2、示例字节未改动。
+- 对 v0.4.1 及之后的版本，额外检查四个命令的无效家目录路径，以及普通 / gzip、文件 / stdin 的过大行上限；应返回 2、stderr 说明、无成功报告或 traceback。旧版本继续使用自身已有行为检查，不强加新修复。
 
 This script checks already-downloaded assets without downloading or rebuilding them. It verifies the checksum, all module bytes, the entry point and license against matching release source **before executing the archive**. It then runs isolated CLI probes in a temporary directory, checks exit codes and confirms fixture bytes are unchanged. Use `--source-directory` for a different release's source. Successful verification exits 0; failures exit 2. This checks compatibility and release consistency, not an independent publisher signature or application schemas.
 
