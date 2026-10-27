@@ -38,16 +38,16 @@ run: python .github/scripts/check_jsonl.py data/records.jsonl
 
 helper 直接传播隔离执行的校验器状态和 JSON 输出。不要追加 `|| true` 或设置 `continue-on-error: true`，否则会改变这条失败规则。
 
-最新源码中的 helper 会在准备工具前拒绝无法展开的家目录路径，以及输入路径解析中的循环链接，返回 2 和简短错误。已有配方请更新复制的 `check_jsonl.py`；仅重新下载相同的 v0.4.0 附件不会更新这个独立脚本。路径错误回归还会确认没有下载或执行归档。
+最新源码中的 helper 会在准备工具前拒绝无法展开的家目录路径，以及输入路径解析中的循环链接，返回 2 和简短错误。已有配方请更新复制的 `check_jsonl.py`；仅下载或替换 pyz 附件不会更新这个独立脚本。路径错误回归还会确认没有下载或执行归档。
 
 **job 失败与禁止合并是两件事。** 如需把检查作为合并条件，应另在仓库规则中将该检查设为必需状态；本示例不修改仓库规则。手动触发要求工作流先存在于默认分支，首次 fork PR 也可能需要维护者批准运行；等待批准不表示数据验证失败。依据见 [GitHub 触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)及[路径过滤说明](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)。
 
 ## 固定工具版本与本地练习
 
-helper 默认从固定公开 URL 下载已发布的 **v0.4.0** 单文件包，最多读取 1 MiB + 1 字节；超过 1 MiB 即拒绝。读取完成后与源码中固定的 SHA-256 比较，通过后才复制到私有临时目录，并用 `python -I` 执行。哈希为：
+helper 默认从固定公开 URL 下载已发布的 **v0.4.1** 单文件包，最多读取 1 MiB + 1 字节；超过 1 MiB 即拒绝。读取完成后与源码中固定的 SHA-256 比较，通过后才复制到私有临时目录，并用 `python -I` 执行。哈希为：
 
 ```text
-349b3fdda2c55f37e2c422935ef63718f2950f65076fe0f45309ad4f0e44fc64
+8bcdda5170694a4ce31731234ca7ee4b5025992e09345808e98dca1f40c030d9
 ```
 
 默认准备工具需要网络；**这不改变校验器本身离线运行的行为**。30 秒是网络阻塞超时，整个 job 受 5 分钟上限约束；它不等同于 CLI 已提供总解压量或 CPU 预算。固定哈希检查版本字节一致性，不是独立的发布者签名。升级版本时应同时核实并更新 `RELEASE_URL` 与 `RELEASE_SHA256`，重新验证示例。
@@ -86,8 +86,8 @@ Copy the two recipe files to `.github/workflows/check-jsonl.yml` and `.github/sc
 
 The workflow uses ordinary pull requests, pushes, and manual dispatch, with read-only contents permission and checkout credential persistence disabled. It requires Python 3.12, no pip, and no additional secrets. It intentionally has no path filter. Dispatch requires the workflow on the default branch; fork runs may need approval. A failed job does not automatically prevent merging: configure a required status check separately if desired.
 
-The helper downloads the fixed v0.4.0 archive and checks its hardcoded SHA-256 before executing a private temporary copy with `python -I`. Preparation uses network access; `--archive PATH` uses existing bytes without network and still enforces the same checksum. Inputs are unchanged, stdout remains the validator's JSON, and its status propagates: 0 for complete valid input; 2 for invalid records, incomplete gzip, or preparation/input failures. Do not mask the exit with `|| true` or `continue-on-error`.
+The helper downloads the fixed v0.4.1 archive and checks its hardcoded SHA-256 before executing a private temporary copy with `python -I`. Preparation uses network access; `--archive PATH` uses existing bytes without network and still enforces the same checksum. Inputs are unchanged, stdout remains the validator's JSON, and its status propagates: 0 for complete valid input; 2 for invalid records, incomplete gzip, or preparation/input failures. Do not mask the exit with `|| true` or `continue-on-error`.
 
-The latest source helper rejects unresolved home paths and input-path symlink loops before preparing the tool, with a short error and exit 2. Update your copied `check_jsonl.py` to get this fix; downloading the same v0.4.0 archive does not update the separate helper. Regression checks confirm that path failures neither download nor execute the archive.
+The latest source helper rejects unresolved home paths and input-path symlink loops before preparing the tool, with a short error and exit 2. Update your copied `check_jsonl.py` to get this fix; downloading or replacing the pyz does not update the separate helper. Regression checks confirm that path failures neither download nor execute the archive.
 
 Run `python scripts/verify_ci_recipe.py` to exercise seven copied-recipe cases, or append `--archive PATH` for an offline run. The success message means expected bad cases were rejected. Our CI executes this verifier on five environments; it does not install workflows in another repository. Limits: a 1 MiB tool download, 30-second network blocking timeout, and a 5-minute job timeout. These are not CLI decompression/CPU budgets or a publisher signature. Schema requirements and minimum record counts remain application policy; empty JSONL is accepted as zero records.

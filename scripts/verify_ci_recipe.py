@@ -18,7 +18,7 @@ RECIPE = ROOT / "examples" / "github-actions"
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archive", type=Path, help="existing published v0.4.0 pyz; otherwise download once")
+    parser.add_argument("--archive", type=Path, help="existing published v0.4.1 pyz; otherwise download once")
     args = parser.parse_args()
     try:
         # Download once using the recipe's own bounded checksum verifier.

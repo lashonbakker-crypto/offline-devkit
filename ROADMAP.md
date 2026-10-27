@@ -22,7 +22,7 @@
 
 已有[Python 默认设置对比](docs/08-json-defaults.md)：`python scripts/compare_json_checks.py` 用同一份临时合成输入展示重复键、非标准数字与格式化数字原文的差异，核对真实 CLI 报告与文件哈希。它说明标准库可配置相同策略，不将默认设置比较扩展为工具排名或独立用户需求证据。
 
-v0.4.1 源码包含[最大文件列表规模基准与优化](docs/06-largest-files.md)：对 1,000 / 10,000 / 100,000 条合成元数据比较完整报告摘要、耗时和追踪分配。测量不含扫描、磁盘 I/O 与输入分配，完整扫描仍需 O(n) 元数据；实际发布状态以 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 为准。
+v0.4.1 已发布并通过[五组实际下载复验](docs/publishing.md)，包含输入错误修复与[最大文件列表规模基准和优化](docs/06-largest-files.md)：对 1,000 / 10,000 / 100,000 条合成元数据比较完整报告摘要、耗时和追踪分配。测量不含扫描、磁盘 I/O 与输入分配，完整扫描仍需 O(n) 元数据。
 
 已补充的扫描检查及其回归测试见 [CHANGELOG](CHANGELOG.md) 和[扫描边界](docs/usage.md#目录命令共同参数)；它们不提供完整并发隔离。
 

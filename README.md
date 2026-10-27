@@ -91,7 +91,7 @@ offline-devkit --help
 
 把[GitHub Actions 配方](docs/07-github-actions.md)的两个文件复制到自己的仓库，指定一个 JSONL 或 gzip 数据文件，就能在提交和 PR 中检查。重复键、压缩截断或文件缺失会让 job 失败；如需阻止合并，应另设必需状态检查。
 
-配方固定使用已发布 v0.4.0，下载后先核对硬编码 SHA-256，不需要 pip。工具准备需要网络，数据在 runner 本地检查。可先运行 `python scripts/verify_ci_recipe.py`，用临时合成数据验证七种结果。
+配方固定使用已发布 v0.4.1，下载后先核对硬编码 SHA-256，不需要 pip。工具准备需要网络，数据在 runner 本地检查。可先运行 `python scripts/verify_ci_recipe.py`，用临时合成数据验证七种结果。
 
 ## 四个日常用法
 
