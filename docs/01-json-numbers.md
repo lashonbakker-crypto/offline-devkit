@@ -47,6 +47,8 @@ Python 默认把 `{"limit":10,"limit":20}` 转成字典后只保留后一项。�
 
 ## 什么情况下选其他方案
 
-需要计算而非格式化时，可以考虑 `decimal.Decimal` 并明确序列化规则；处理超大 JSON 或 JSON Lines 时，需要其他工具或流式实现。当前工具面向 16 MiB 以内的配置文件和样例。
+需要计算而非格式化时，可以考虑 `decimal.Decimal` 并明确序列化规则；`json` 命令面向 16 MiB 以内的配置文件和样例，超大单个 JSON 文档需要其他方案。JSON Lines / NDJSON 可使用本项目的 [`jsonl` 逐行检查](03-jsonl.md)，它只验证并报告，不格式化整份数据集。
+
+想并排观察重复键、`NaN` 与数字原文的实际差异，可以运行 `python scripts/compare_json_checks.py`，见[可复现对比与选择边界](08-json-defaults.md)。Python 标准库也可以通过回调配置严格规则；对比只针对默认设置。
 
 参考：[Python json 官方文档](https://docs.python.org/3/library/json.html)。返回 [实现原理](how-it-works.md)。

@@ -47,6 +47,8 @@ python scripts/try_jsonl.py
 
 克隆需要网络，之后的演示在本机运行。没有 Git 时可下载 [main 分支源码 ZIP](https://github.com/lashonbakker-crypto/offline-devkit/archive/refs/heads/main.zip)，解压进入目录后运行最后一条命令；旧版本源码不包含新演示脚本。Windows 可用 `py -3` 替换 `python`；macOS / Linux 可用 `python3`。
 
+已经会用 `json.loads`，还需要这些检查吗？运行 `python scripts/compare_json_checks.py`，并排观察默认解析中的字段覆盖、`NaN` 与数字改写。见[三个可复现差异与选择边界](docs/08-json-defaults.md)；Python 也能通过回调配置相同策略，对比只针对默认设置。
+
 **检查你自己的文件。** 从源码目录运行，路径替换成已存在的文件：
 
 ```bash
