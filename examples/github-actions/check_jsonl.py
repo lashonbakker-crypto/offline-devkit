@@ -1,4 +1,4 @@
-"""Check one JSONL file with a checksum-pinned Offline DevKit v0.4.0 archive.
+"""Check one JSONL file with a checksum-pinned Offline DevKit v0.4.1 archive.
 
 Copy to .github/scripts/check_jsonl.py alongside the workflow recipe. The
 optional --archive path uses an existing copy without network access; the same
@@ -14,8 +14,8 @@ import sys
 import tempfile
 from urllib.request import urlopen
 
-RELEASE_URL = "https://github.com/lashonbakker-crypto/offline-devkit/releases/download/v0.4.0/offline-devkit.pyz"
-RELEASE_SHA256 = "349b3fdda2c55f37e2c422935ef63718f2950f65076fe0f45309ad4f0e44fc64"
+RELEASE_URL = "https://github.com/lashonbakker-crypto/offline-devkit/releases/download/v0.4.1/offline-devkit.pyz"
+RELEASE_SHA256 = "8bcdda5170694a4ce31731234ca7ee4b5025992e09345808e98dca1f40c030d9"
 MAX_ARCHIVE_BYTES = 1024 * 1024
 DOWNLOAD_TIMEOUT_SECONDS = 30
 
@@ -44,7 +44,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", type=Path, help="one explicit existing JSONL file")
     parser.add_argument("--gzip", action="store_true", help="read gzip-compressed input")
-    parser.add_argument("--archive", type=Path, help="existing v0.4.0 pyz; the fixed SHA-256 still applies")
+    parser.add_argument("--archive", type=Path, help="existing v0.4.1 pyz; the fixed SHA-256 still applies")
     args = parser.parse_args()
     try:
         try:

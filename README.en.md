@@ -83,7 +83,7 @@ Installation may download the setuptools build dependency. Running the tools aft
 
 Copy the two-file [GitHub Actions recipe](docs/07-github-actions.md#english) into your repository and select one JSONL or gzip dataset. Duplicate keys, truncated gzip, and missing files make the job fail; configure a required status check separately to make it a merge condition.
 
-The recipe pins the published v0.4.0 archive and checks its hardcoded SHA-256 before execution, with no pip dependency. Preparing the tool needs network access; data checks run locally on the runner. Try `python scripts/verify_ci_recipe.py` first for seven disposable verification cases.
+The recipe pins the published v0.4.1 archive and checks its hardcoded SHA-256 before execution, with no pip dependency. Preparing the tool needs network access; data checks run locally on the runner. Try `python scripts/verify_ci_recipe.py` first for seven disposable verification cases.
 
 ## Everyday examples
 

@@ -1,6 +1,6 @@
 # 发布与下载包
 
-仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.4.1，包含输入错误修复与最大文件列表选择优化；实际发布版本与下载附件见 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest)。源码 CI、发布任务和实际下载复验应分别检查，不能用本地构建代替下载结果。
+仓库已公开，日常改动基于远程 `main`，不要重新初始化或用早期源码包覆盖现有历史。当前源码版本为 0.4.1；[v0.4.1 已实际发布](https://github.com/lashonbakker-crypto/offline-devkit/releases/tag/v0.4.1)，下载包包含输入错误修复与最大文件列表选择优化。源码 CI、发布任务和实际下载复验分别记录如下，不能用本地构建代替下载结果。
 
 ## 单文件运行包
 
@@ -83,6 +83,21 @@ This script checks already-downloaded assets without downloading or rebuilding t
 维护者可以在 Actions 手动运行 **Verify published download**，输入 `v0.3.0` 或后续标签。五组环境从 Release 下载相同的附件，不重新构建，并核对标签源码：Linux / Python 3.10、3.12、3.14，以及 Windows 和 macOS 15（Intel）/ Python 3.12。工作流只有仓库读取权限，不发布或覆盖附件；普通提交不会触发它。
 
 Maintainers can manually run **Verify published download** for a published tag. Its five environments download the same release assets, compare them with tagged source and run the verifier. The shared `--source-ref` path uses `git -c core.autocrlf=false -c core.eol=lf archive` to avoid inherited newline conversion in both checkout and archive. It requires Git and an existing local ref, uses a temporary source directory, performs no network access and does not change Git settings or the working tree. Source-ZIP users can use the directory-only path. The workflow has read-only repository permissions and never publishes or overwrites assets. Intel macOS results do not establish Apple Silicon coverage.
+
+## v0.4.1 下载附件复验记录 — 2026-10-27
+
+发布标签固定于提交 `5673b9b85feffea5b62314ba3e882e90eaef44a3`。[五组源码 CI](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/40455924238)、[发布任务](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/40456031208)与[五组实际下载复验](https://github.com/lashonbakker-crypto/offline-devkit/actions/runs/40456227988)均已检查，结果成功。Windows 的 FIFO 用例按原有系统能力规则跳过；本地 Linux / CPython 3.12.14 的 88 项行为测试全部通过。
+
+五组下载复验分别覆盖 Linux / Python 3.10、3.12、3.14，以及 Windows、macOS 15（Intel）/ Python 3.12。已逐组核对实际日志：
+
+- 从 Release 下载同一个 `offline-devkit.pyz`（11220 字节）和 `SHA256SUMS.txt`（85 字节），没有在验证 job 中重建归档。
+- 运行包 SHA-256 为 `8bcdda5170694a4ce31731234ca7ee4b5025992e09345808e98dca1f40c030d9`，与校验文件及 GitHub 附件摘要一致。
+- 七个模块（含 `paths.py`）、入口和许可证逐字节匹配标签，再用 `python -I` 在源码目录外运行实际附件。
+- 四命令无效家目录路径，以及普通 / gzip、文件 / stdin 的过大行上限，均返回 2、空 stdout、错误说明且无 traceback；同时通过精确数字、16 种 BOM、重复报告、逻辑大小、JSONL 和 gzip 完整性检查，输入字节不变。
+
+源码中的消费者 CI helper 现固定使用该已验证附件及其哈希；旧复制脚本仍需由使用者更新，替换 pyz 不会更新 helper。单文件包包含 CLI 和许可证，演练、示例数据与 CI 配方在标签源码 ZIP / tar.gz 中。旧标签与附件保留。
+
+The published v0.4.1 archive passed source CI, publishing, and actual downloaded-asset verification in the linked runs. All five verification jobs downloaded the same 11220-byte pyz and 85-byte checksum file, checked SHA-256 and all seven tagged modules, entry point and license, then executed the archive with isolated imports. Four-command invalid-home paths and plain/gzip file/stdin oversized-limit cases returned 2 with no success output or traceback. Existing numeric, BOM, file-report and JSONL/gzip integrity checks passed with unchanged fixture bytes. The consumer helper now pins this verified release and digest; update the copied helper separately. Local CPython 3.12.14/Linux passed 88 tests; Windows skips unsupported FIFO creation. These checks do not establish Apple Silicon coverage, filesystem snapshots or total decompression/time budgets.
 
 ## v0.4.0 下载附件复验记录 — 2026-10-17
 
