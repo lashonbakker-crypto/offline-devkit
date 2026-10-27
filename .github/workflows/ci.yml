@@ -47,6 +47,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Check README first-run demo
         run: python scripts/try_jsonl.py
+      - name: Verify JSON defaults comparison
+        run: python scripts/compare_json_checks.py
       - name: Verify copied consumer CI recipe
         run: python scripts/verify_ci_recipe.py
       - name: Verify synthetic size-report benchmark

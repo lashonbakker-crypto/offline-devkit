@@ -43,6 +43,8 @@ The demo invokes the actual CLI, creates and cleans synthetic samples in a tempo
 
 Cloning requires network access; the subsequent demo runs locally. Without Git, extract the [main branch source ZIP](https://github.com/lashonbakker-crypto/offline-devkit/archive/refs/heads/main.zip) and run the last command from its directory; older source releases do not contain the new demo script. Use `py -3` on Windows or `python3` on macOS / Linux if needed.
 
+Already using `json.loads`? Run `python scripts/compare_json_checks.py` to see overwritten fields, accepted NaN and changed number spellings side by side. The [three-case comparison and selection guide](docs/08-json-defaults.md#english) explains the scope; Python can implement the same policies through hooks, and this compares only its defaults.
+
 **Check your own files.** From the source directory, replace the paths with existing files:
 
 ```bash
