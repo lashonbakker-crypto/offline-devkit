@@ -12,7 +12,7 @@ python scripts/compare_json_checks.py
 
 [脚本](../scripts/compare_json_checks.py)打印实际 Python 和工具版本。基线是默认 `json.loads(text)` 后执行默认 `json.dumps(value)`；本工具通过真实 CLI 子进程读取同一份临时合成文件。它核对完整报告、数字输出、输入哈希与清理情况，失败返回 2。最后的 `Comparison passed` 与脚本退出 0 表示预期差异已验证，包括两个坏样本被检查器以 2 拒绝。
 
-脚本调用当前检出的源码，不是下载的 Release 附件。源码的版本字符串可能仍为 `0.4.0`；它不能用来证明执行的是已发布附件。脚本自身只在最新源码中提供，CLI 行为在 v0.4.0 已有。
+脚本调用当前检出的源码；版本字符串不能证明执行的是下载的 Release 附件。脚本在 v0.4.1 源码包中提供，不在 pyz 内；本页比较的 CLI 行为从 v0.4.0 起已有。
 
 ## 三个具体差异
 
@@ -62,7 +62,7 @@ python scripts/compare_json_checks.py
 
 Run `python scripts/compare_json_checks.py` from the latest checkout with Python 3.10+. No pip or personal data is needed. The script prints actual Python/tool versions, inputs, baseline outputs and complete CLI reports. Its baseline is default `json.loads(text)` followed by default `json.dumps(value)`. The CLI reads the same disposable synthetic files. Input hashes, report contents, number output and cleanup are checked; a mismatch returns 2. `Comparison passed` and script exit 0 mean both rejected inputs were correctly rejected with validator exit 2.
 
-This runs the current source, not a downloaded release. A source version string of `0.4.0` is not proof that a published archive was executed. The script is new in source; the CLI behaviors already exist in v0.4.0.
+This runs the current checkout; a source version string is not proof that a downloaded release was executed. The script is included in the v0.4.1 source distribution, not the pyz; the compared CLI behaviors already exist in v0.4.0.
 
 | Input | Default output on CPython 3.12.14 | CLI outcome |
 | --- | --- | --- |

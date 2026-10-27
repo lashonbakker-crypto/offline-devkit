@@ -140,7 +140,7 @@ python -m offline_devkit sizes . --exclude "*.log" --json
 
 默认跳过 `.git`、`.venv`、`venv`、`node_modules`、`__pycache__`、`.pytest_cache` 目录，以及符号链接和 Windows 重解析点。显式加 `--include-ignored` 可以纳入依赖与缓存目录；它仍然不会遍历链接。特殊文件（例如命名管道）不计入报告。
 
-当前 `main` 优化了“从大量文件中选出前 N 个”的报告开销，并附有[可复现规模基准](docs/06-largest-files.md)。基准只测已收集元数据后的报告构造，不代表真实目录扫描速度；已发布的 v0.4.0 附件尚不包含此优化。
+v0.4.1 源码包含“从大量文件中选出前 N 个”的报告选择优化，并附有[可复现规模基准](docs/06-largest-files.md)。基准只测已收集元数据后的报告构造，不代表真实目录扫描速度；下载版本与附件以 [Releases](https://github.com/lashonbakker-crypto/offline-devkit/releases/latest) 为准，v0.4.0 不包含此优化。
 
 ## 退出码
 
