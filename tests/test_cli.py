@@ -174,7 +174,7 @@ class CliTests(unittest.TestCase):
                     status, output, errors = self.invoke(command, source, *options)
                 self.assertEqual((status, output), (2, ""))
                 self.assertIn("cannot expand user path", errors)
-                self.assertIn(source, errors)
+                self.assertIn(repr(str(Path(source))), errors)
                 self.assertIn("home lookup failed", errors)
                 self.assertNotIn("Traceback", errors)
                 open_file.assert_not_called()
