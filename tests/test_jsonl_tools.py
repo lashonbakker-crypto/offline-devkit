@@ -1,4 +1,5 @@
 import io
+import sys
 import unittest
 
 from offline_devkit.jsonl_tools import validate_jsonl
@@ -97,6 +98,20 @@ class JsonLinesTests(unittest.TestCase):
         for options in ({"max_line_bytes": 0}, {"max_errors": -1}):
             with self.subTest(options=options), self.assertRaises(ValueError):
                 self.validate(b"{}\n", **options)
+
+    def test_line_limit_range_is_checked_before_reading(self):
+        class UnreadableStream:
+            def readline(self, size=-1):
+                raise AssertionError("invalid configuration must fail before reading")
+
+        for limit in (sys.maxsize - 2, sys.maxsize, 10 ** 100):
+            with self.subTest(limit=limit), self.assertRaisesRegex(ValueError, "max_line_bytes must be between"):
+                validate_jsonl(UnreadableStream(), max_line_bytes=limit)
+        for stream in (io.BytesIO(b"{}\r\n"), io.StringIO("{}\r\n")):
+            with self.subTest(stream=type(stream).__name__):
+                report = validate_jsonl(stream, max_line_bytes=sys.maxsize - 3)
+                self.assertEqual((report["valid_lines"], report["invalid_lines"]), (1, 0))
+                self.assertTrue(report["complete"])
 
     def test_read_error_while_draining_retains_known_invalid_line(self):
         class BrokenStream(io.BytesIO):

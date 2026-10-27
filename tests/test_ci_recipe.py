@@ -15,6 +15,52 @@ SPEC.loader.exec_module(RECIPE)
 
 
 class ConsumerRecipeTests(unittest.TestCase):
+    def test_input_path_runtime_errors_return_two_before_tool_preparation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "records.jsonl"
+            source.write_bytes(b"{}\n")
+            for operation in ("expanduser", "resolve"):
+                with self.subTest(operation=operation):
+                    output, errors = io.StringIO(), io.StringIO()
+                    with (
+                        patch.object(RECIPE.Path, operation, side_effect=RuntimeError("path unavailable")),
+                        patch.object(RECIPE, "archive_bytes") as prepare,
+                        patch.object(RECIPE, "urlopen") as download,
+                        patch.object(RECIPE.subprocess, "run") as execute,
+                    ):
+                        with patch.object(sys, "argv", ["check_jsonl.py", str(source)]), redirect_stdout(output), redirect_stderr(errors):
+                            status = RECIPE.main()
+                    self.assertEqual(status, 2)
+                    self.assertEqual(output.getvalue(), "")
+                    self.assertIn("cannot prepare input path: path unavailable", errors.getvalue())
+                    self.assertNotIn("Traceback", errors.getvalue())
+                    prepare.assert_not_called()
+                    download.assert_not_called()
+                    execute.assert_not_called()
+                    self.assertEqual(source.read_bytes(), b"{}\n")
+
+    def test_archive_path_runtime_error_returns_two_before_tool_preparation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "records.jsonl"
+            source.write_bytes(b"{}\n")
+            output, errors = io.StringIO(), io.StringIO()
+            with (
+                patch.object(RECIPE.Path, "expanduser", side_effect=[source, RuntimeError("home unavailable")]),
+                patch.object(RECIPE, "archive_bytes") as prepare,
+                patch.object(RECIPE, "urlopen") as download,
+                patch.object(RECIPE.subprocess, "run") as execute,
+            ):
+                with patch.object(sys, "argv", ["check_jsonl.py", str(source), "--archive", "~/tool.pyz"]), redirect_stdout(output), redirect_stderr(errors):
+                    status = RECIPE.main()
+            self.assertEqual(status, 2)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("cannot prepare --archive path: home unavailable", errors.getvalue())
+            self.assertNotIn("Traceback", errors.getvalue())
+            prepare.assert_not_called()
+            download.assert_not_called()
+            execute.assert_not_called()
+            self.assertEqual(source.read_bytes(), b"{}\n")
+
     def test_incomplete_http_download_returns_two_without_executing(self):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "records.jsonl"

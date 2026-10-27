@@ -13,6 +13,35 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GzipJsonLinesTests(unittest.TestCase):
+    def test_cli_line_limit_range_for_files_stdin_and_gzip(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "records.bin"
+            for compressed in (False, True):
+                data = gzip.compress(b"{}\n", mtime=0) if compressed else b"{}\n"
+                path.write_bytes(data)
+                for source in (str(path), "-"):
+                    for limit in (sys.maxsize - 3, sys.maxsize - 2, sys.maxsize, 10 ** 100):
+                        with self.subTest(compressed=compressed, source=source, limit=limit):
+                            command = [sys.executable, "-m", "offline_devkit", "jsonl", source, "--json", "--max-line-bytes", str(limit)]
+                            if compressed:
+                                command.append("--gzip")
+                            result = subprocess.run(
+                                command, input=data if source == "-" else None,
+                                capture_output=True, cwd=ROOT, timeout=10, check=False,
+                            )
+                            if limit == sys.maxsize - 3:
+                                self.assertEqual(result.returncode, 0, result.stderr)
+                                self.assertEqual(result.stderr, b"")
+                                report = json.loads(result.stdout)
+                                self.assertEqual(report["valid_lines"], 1)
+                                self.assertTrue(report["complete"])
+                            else:
+                                self.assertEqual(result.returncode, 2, result.stderr)
+                                self.assertEqual(result.stdout, b"")
+                                self.assertIn(b"max_line_bytes must be between", result.stderr)
+                                self.assertNotIn(b"Traceback", result.stderr)
+                self.assertEqual(path.read_bytes(), data)
+
     def test_unicode_numbers_crlf_and_missing_final_newline(self):
         data = gzip.compress('{"猫":1E-400}\r\n[9007199254740993123456789]\r\nnull'.encode("utf-8"))
         stream = io.BytesIO(data)
